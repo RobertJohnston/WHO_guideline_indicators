@@ -1,2 +1,2 @@
 # WHO_guideline_2024_indicators
-Calculation of the specific indicators included in the WHO Guideline 2024 
+Calculation of prevalence of all screening criteria for screening criteria included in 2024 WHO Guideline
