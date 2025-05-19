@@ -518,9 +518,62 @@ for (file in file_names) {
   writeData(wb, sheet = sheet_name, x = "Children 6-59m with Global Acute Malnutrition", startCol = x, startRow = y)
   writeData(wb, sheet = sheet_name, x = gam_6_59m, startCol = x, startRow = y+1)
   
-  # Save the file
-  saveWorkbook(wb, file_path, overwrite = TRUE)
   
+  # WHZ distributions
+  if ("whz" %in% names(df) && all(!is.na(df$whz))) {  # if whz is not present or all missing - skip
+        df_clean <- df %>%
+      filter(!is.na(whz), !is.na(Region))
+    
+    # Plot: Histogram as % + Gaussian density curve
+    png("whz_plot.png", width = 1200, height = 800, res = 150)
+    ggplot(df_clean, aes(x = whz)) +
+      geom_histogram(aes(y = ..density.. * 100), 
+                     binwidth = 0.2, fill = "skyblue", color = "white") +
+      stat_function(fun = function(x) dnorm(x, mean = 0, sd = 1) * 100,
+                    color = "gray", size = 1) +
+      facet_wrap(~ Region) +
+      scale_y_continuous(name = "Percent Density") +
+      scale_x_continuous(name = "WHZ", breaks = seq(-5, 5, by = 1)) +
+      labs(title = "WHZ Percent Distribution with Gaussian Curve by Region") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 0, hjust = 1))
+    dev.off()
+    
+    insertImage(wb, sheet = sheet_name, file = "whz_plot.png", startRow = 5, startCol = 14, width = 6, height = 5)
+  }
+  
+  # MUAC
+  
+  if ("muac" %in% names(df) && all(!is.na(df$muac))) {  # if muac is not present or all missing - skip
+    df_clean <- df %>%
+      filter(!is.na(whz), !is.na(Region))
+    
+    # Plot: Histogram as % + Gaussian density curve
+    muac_min <- floor(min(df_clean$muac, na.rm = TRUE) / 10) * 10
+    muac_max <- ceiling(max(df_clean$muac, na.rm = TRUE) / 10) * 10
+    
+    # Plot with dynamic x-axis
+    png("muac_plot.png", width = 1200, height = 800, res = 150)
+    ggplot(df_clean, aes(x = muac)) +
+      geom_histogram(aes(y = ..density.. * 100), 
+                     binwidth = 0.2, fill = "pink", color = "pink") +
+      facet_wrap(~ Region) +
+      scale_y_continuous(name = "Percent Density") +
+      scale_x_continuous(
+        name = "MUAC",
+        breaks = seq(muac_min, muac_max, by = 10),
+        limits = c(muac_min, muac_max)
+      ) +
+      labs(title = "MUAC Percent Distribution by Region") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))
+    dev.off()
+    
+    insertImage(wb, sheet = sheet_name, file = "muac_plot.png", startRow = 20, startCol = 14, width = 6, height = 5)
+    
+    # Save the file
+    saveWorkbook(wb, file_path, overwrite = TRUE)
+  }
 }
 
 END
@@ -533,62 +586,12 @@ END
 
 
 
-whz_summary <- df %>%
-  group_by(Region) %>%
-  summarise(
-    count = sum(!is.na(whz)),
-    mean_whz = mean(whz, na.rm = TRUE),
-    median_whz = median(whz, na.rm = TRUE),
-    sd_whz = sd(whz, na.rm = TRUE),
-    min_whz = min(whz, na.rm = TRUE),
-    max_whz = max(whz, na.rm = TRUE)
-  ) %>%
-  arrange(Region)
-
-print(whz_summary)
 
 
 
-# WHZ distributions
-df_clean <- df %>%
-  filter(!is.na(whz), !is.na(Region))
-
-# Plot: Histogram as % + Gaussian density curve
-ggplot(df_clean, aes(x = whz)) +
-  geom_histogram(aes(y = ..density.. * 100), 
-                 binwidth = 0.2, fill = "skyblue", color = "white") +
-  stat_function(fun = function(x) dnorm(x, mean = 0, sd = 1) * 100,
-                color = "gray", size = 1) +
-  facet_wrap(~ Region) +
-  scale_y_continuous(name = "Percent Density") +
-  scale_x_continuous(name = "WHZ", breaks = seq(-5, 5, by = 1)) +
-  labs(title = "WHZ Percent Distribution with Gaussian Curve by Region") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
 
-# MUAC
-df_clean <- df %>%
-  filter(!is.na(whz), !is.na(Region))
 
-# Plot: Histogram as % + Gaussian density curve
-muac_min <- floor(min(df_clean$muac, na.rm = TRUE) / 10) * 10
-muac_max <- ceiling(max(df_clean$muac, na.rm = TRUE) / 10) * 10
-
-# Plot with dynamic x-axis
-ggplot(df_clean, aes(x = muac)) +
-  geom_histogram(aes(y = ..density.. * 100), 
-                 binwidth = 0.2, fill = "pink", color = "pink") +
-  facet_wrap(~ Region) +
-  scale_y_continuous(name = "Percent Density") +
-  scale_x_continuous(
-    name = "MUAC",
-    breaks = seq(muac_min, muac_max, by = 10),
-    limits = c(muac_min, muac_max)
-  ) +
-  labs(title = "MUAC Percent Distribution by Region") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 # table_temp <-  df %>% 
 #   calc_cro_rpct(
@@ -605,4 +608,17 @@ ggplot(df_clean, aes(x = muac)) +
 # #Note the mean haz, whz, and waz are computed for the total and not by each background variable. 
 # write.xlsx(table_temp, "WHO_guideline_indicators.xls", sheetName = "WHO_criteria", append=TRUE)
 
+# whz_summary <- df %>%
+#   group_by(Region) %>%
+#   summarise(
+#     count = sum(!is.na(whz)),
+#     mean_whz = mean(whz, na.rm = TRUE),
+#     median_whz = median(whz, na.rm = TRUE),
+#     sd_whz = sd(whz, na.rm = TRUE),
+#     min_whz = min(whz, na.rm = TRUE),
+#     max_whz = max(whz, na.rm = TRUE)
+#   ) %>%
+#   arrange(Region)
+# 
+# print(whz_summary)
 
