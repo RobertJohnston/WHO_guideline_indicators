@@ -354,32 +354,37 @@ for (file in file_names) {
   df_0_5m <- df %>% filter(agemons >=0 & agemons < 6)
   
   # AT RISK TABLE
+  table_name <- "at_risk_0_5m"
+  df_name <- "df_0_5m"
   indicators <- c("sev_wast", "muac_110",  "oedema", "uwt", "at_risk")
   
-  table_at_risk_0_5m <- df_0_5m %>%
+  main_table <- get(df_name) %>%
     group_by(Region) %>%
     summarise_prev_table()
   
-  total_row <- summarise_prev_table(df_0_5m) %>%
+  total_row <- summarise_prev_table(get(df_name)) %>%
     mutate(Region = "Total") %>%
     select(Region, everything())
   
-  table_at_risk_0_5m <- bind_rows(table_at_risk_0_5m, total_row)
+  full_table <- bind_rows(main_table, total_row)
+  
+  # Suppress % if N < 30
   for (var in indicators) {
     pct_col <- paste0(var, " (%)")
     n_col   <- paste0(var, " (N)")
     
-    if (pct_col %in% names(table_at_risk_0_5m) && n_col %in% names(table_at_risk_0_5m)) {
-      table_at_risk_0_5m[[pct_col]] <- ifelse(
-        is.na(table_at_risk_0_5m[[n_col]]) | table_at_risk_0_5m[[n_col]] < 30,
-        " - ",
-        as.character(table_at_risk_0_5m[[pct_col]])
-      )
+    if (pct_col %in% names(full_table) && n_col %in% names(full_table)) {
+      mask <- is.na(full_table[[n_col]]) | full_table[[n_col]] < 30
+      if (any(mask)) {
+        full_table[[pct_col]] <- as.character(full_table[[pct_col]])
+        full_table[[pct_col]][mask] <- " - "
+      }
     }
   }
+  full_table <- replace_names_with_labels(full_table, get(df_name), indicators)
+  assign(table_name, full_table)
+  View(get(table_name))
   
-  table_at_risk_0_5m <- replace_names_with_labels(table_at_risk_0_5m, df_0_5m, indicators)
-  View(table_at_risk_0_5m)
   
   # **************************************************************************************************
   # * Anthropometric indicators for children from 6- 59 months
@@ -387,61 +392,76 @@ for (file in file_names) {
   
   df_6_59m <- df %>% filter(agemons > 5 & agemons < 60)
   
-  
   # SAM TABLE
+  table_name <- "sam_6_59m"
+  df_name <- "df_6_59m"
   indicators <- c("sev_wast", "muac_115", "oedema", "sam")
   
-  table_sam_6_59m <- df_6_59m %>%
+  main_table <- get(df_name) %>%
     group_by(Region) %>%
     summarise_prev_table()
-  
-  total_row <- summarise_prev_table(df_6_59m) %>%
+
+  total_row <- summarise_prev_table(get(df_name)) %>%
     mutate(Region = "Total") %>%
     select(Region, everything())
   
-  table_sam_6_59m <- bind_rows(table_sam_6_59m, total_row)
+  full_table <- bind_rows(main_table, total_row)
+  
+  # Suppress % if N < 30
   for (var in indicators) {
     pct_col <- paste0(var, " (%)")
     n_col   <- paste0(var, " (N)")
     
-    if (pct_col %in% names(table_sam_6_59m) && n_col %in% names(table_sam_6_59m)) {
-      table_sam_6_59m[[pct_col]] <- ifelse(
-        is.na(table_sam_6_59m[[n_col]]) | table_sam_6_59m[[n_col]] < 30,
-        " - ",
-        as.character(table_sam_6_59m[[pct_col]])
-      )
+    if (pct_col %in% names(full_table) && n_col %in% names(full_table)) {
+      mask <- is.na(full_table[[n_col]]) | full_table[[n_col]] < 30
+      if (any(mask)) {
+        full_table[[pct_col]] <- as.character(full_table[[pct_col]])
+        full_table[[pct_col]][mask] <- " - "
+      }
     }
   }
-  table_sam_6_59m <- replace_names_with_labels(table_sam_6_59m, df_6_59m, indicators)
-  View(table_sam_6_59m)
+  
+  full_table <- replace_names_with_labels(full_table, get(df_name), indicators)
+  assign(table_name, full_table)
+  View(get(table_name))
+  
   
   
   # GAM TABLE
-  indicators <- c("wast", "muac_125", "oedema", "gam")
-  
-  table_gam_6_59m <- df_6_59m %>%
+  table_name <- "gam_6_59m"
+  df_name <- "df_6_59m"
+    indicators <- c("wast", "muac_125", "oedema", "gam")
+
+  main_table <- get(df_name) %>%
     group_by(Region) %>%
     summarise_prev_table()
   
-  total_row <- summarise_prev_table(df_6_59m) %>%
+  total_row <- summarise_prev_table(get(df_name)) %>%
     mutate(Region = "Total") %>%
     select(Region, everything())
   
-  table_gam_6_59m <- bind_rows(table_gam_6_59m, total_row)
+  full_table <- bind_rows(main_table, total_row)
+  
+  # Suppress % if N < 30
   for (var in indicators) {
     pct_col <- paste0(var, " (%)")
     n_col   <- paste0(var, " (N)")
     
-    if (pct_col %in% names(table_gam_6_59m) && n_col %in% names(table_gam_6_59m)) {
-      table_gam_6_59m[[pct_col]] <- ifelse(
-        is.na(table_gam_6_59m[[n_col]]) | table_gam_6_59m[[n_col]] < 30,
-        " - ",
-        as.character(table_gam_6_59m[[pct_col]])
-      )
+    if (pct_col %in% names(full_table) && n_col %in% names(full_table)) {
+      mask <- is.na(full_table[[n_col]]) | full_table[[n_col]] < 30
+      if (any(mask)) {
+        full_table[[pct_col]] <- as.character(full_table[[pct_col]])
+        full_table[[pct_col]][mask] <- " - "
+      }
     }
   }
-  table_gam_6_59m <- replace_names_with_labels(table_gam_6_59m, df_6_59m, indicators)
-  View(table_gam_6_59m)
+  
+  full_table <- replace_names_with_labels(full_table, get(df_name), indicators)
+  assign(table_name, full_table)
+  View(get(table_name))
+  
+  
+
   
   
   # Remove everything before the first dash and after -ANT.csv
@@ -461,8 +481,7 @@ for (file in file_names) {
   # Define file, sheet, and cell position
   file_path <- paste0("C:/Users/rojohnston/Downloads/WHO_indicators_", country_name, ".xlsx")
   sheet_name <- cleaned_name # use 
-  start_cell <- "B2"
-  
+
   if (!file.exists(file_path)) {
     wb <- createWorkbook()
   } else {
@@ -489,15 +508,15 @@ for (file in file_names) {
   writeData(wb, sheet = sheet_name, x = note2, startCol = 2, startRow = 3)
   
   writeData(wb, sheet = sheet_name, x = "Infants from 0-5m at risk of poor growth and development", startCol = x, startRow = y)
-  writeData(wb, sheet = sheet_name, x = table_at_risk_0_5m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = sheet_name, x = at_risk_0_5m, startCol = x, startRow = y+1)
   y = y + add_y
   
   writeData(wb, sheet = sheet_name, x = "Children 6-59m with Severe Acute Malnutrition", startCol = x, startRow = y)
-  writeData(wb, sheet = sheet_name, x = table_sam_6_59m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = sheet_name, x = sam_6_59m, startCol = x, startRow = y+1)
   y = y + add_y
   
   writeData(wb, sheet = sheet_name, x = "Children 6-59m with Global Acute Malnutrition", startCol = x, startRow = y)
-  writeData(wb, sheet = sheet_name, x = table_gam_6_59m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = sheet_name, x = gam_6_59m, startCol = x, startRow = y+1)
   
   # Save the file
   saveWorkbook(wb, file_path, overwrite = TRUE)
