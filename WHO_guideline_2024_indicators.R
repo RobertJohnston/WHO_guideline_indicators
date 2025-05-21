@@ -1,27 +1,19 @@
 # WHO_guideline_2024_indicators
 
+
+# ADD GRAPHS
+# ADD tABLES FOR mam AND 0-59m
+# cORRECT date_meas
+
+
 # Calculation of prevalence of all screening criteria for
 # screening criteria included in 2024 WHO Guideline
 
 # Clear environment
 rm(list = ls())
 
-# install.packages("matrixStats")
-# install.packages("labelled")
-# install.packages("expss")
-
-# Load libraries
-library(readr)
-library(haven)
-library(ggplot2)
-library(labelled)
-library(matrixStats)
-library(expss)
-library(dplyr)
-library(openxlsx)
-
 # Host-specific setting of hostname
-hostname <- Sys.info()[['nodename']]   
+hostname <- Sys.info()[['nodename']]  # or Sys.info()[["nodename"]]
 
 # Setting work directory based on host
 if (hostname == "992224APL0X0061") {
@@ -39,55 +31,38 @@ datadir <- file.path(workdir, "Data")
 
 search_name = "Burkina"
 
+
+
+# install.packages("matrixStats")
+# install.packages("labelled")
+# install.packages("expss")
+
+# Load libraries
+library(readr)
+library(haven)
+library(ggplot2)
+library(labelled)
+library(matrixStats)
+library(expss)
+library(dplyr)
+library(openxlsx)
+
 # Collect list of files with name of country included
 files <- list.files(path = workdir, pattern = search_name, full.names = TRUE)
 file_names <- basename(files)
 print(file_names)
 
-# Burkina_Faso-2010-SMART-ANT.dta
-# Burkina_Faso-2011-SMART-ANT.dta
-# Burkina_Faso-2012-SMART-ANT.dta
-# Burkina_Faso-2013-SMART-ANT.dta
-# Burkina_Faso-2014-LSMS-ANT.dta
-# Burkina_Faso-2014-SMART-ANT.dta
-# Burkina_Faso-2015-SMART-ANT.dta
-# Burkina_Faso-2016-SMART-ANT.dta
-# Burkina_Faso-2017-SMART-ANT.dta
-# Burkina_Faso-2018-SMART-ANT.dta
-# Burkina_Faso-2019-SMART-ANT.dta
-# Burkina_Faso-2020-Micronutrient-ANT.dta
-# Burkina_Faso-2020-SMART-ANT.dta
-# Burkina_Faso-2021-DHS-ANT.dta
-# Burkina_Faso-2021-SMART-ANT.dta
-# Burkina_Faso-2022-SMART-ANT.dta
-
-# read_csv - includes the indicator label names.  read_dta does not. 
+# NOTE read_csv - includes the indicator label names.  read_dta does not. 
 
 # Loop over filenames 
-
 for (file in file_names) {
     df <- read_csv(file.path(workdir, file))
 
-# df <- read_csv(file.path(workdir, "Burkina_Faso-1993-DHS-ANT.csv" ))
-# View(df)
-  
-  # Valid data review
-  # View(df %>% filter(is.na(sample_wgt)))
-  # View(df %>% filter(is.na(sex)))
-  
   # if sex is missing, then z-scores cannot be calculated
   # Change this line if a dataset of only muac is used. 
   fre(df$sex)
   df <- df %>% filter(!is.na(sex))
 
-  
-  # WAZ
-  # WHZ
-  # MUAC
-  # Oedema
-  # Agedays
-  # Not BF
-  
   # Data Cleaning
   
   # create sample_wgt
@@ -109,8 +84,8 @@ for (file in file_names) {
     df$oedema <- df$oedema_original
   }
   
-  # is MUAC saved as CM or MM ?
-  # If ave(muac) > 110 then saved in MM
+
+  # If MUAC is saved in CM, convert to MM
   if ("muac" %in% names(df) && all(!is.na(df$muac))) {  # if muac is not present or all missing - skip
     if (mean(df$muac, na.rm = TRUE) > 12 & mean(df$muac, na.rm = TRUE) < 18) {
       df$muac <- df$muac * 10  # 1 cm = 10 mm
@@ -141,12 +116,10 @@ for (file in file_names) {
   # COMBINED AT RISK
   
   # Children from 6 to 59 months of age 
-  
   # Percentage of 6-59M child contacts with severe wasting (WHZ < - 3 SD of WHO child growth standards)
   # Percentage of 6-59M child contacts with severe wasting by MUAC (MUAC < 115mm)
   # Percentage of 6-59M child contacts with nutritional oedema 
   # Combined SAM
-  
   
   # Underweight 
   df <- df %>%
@@ -239,7 +212,6 @@ for (file in file_names) {
     set_value_labels(at_risk = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(at_risk = "At Risk Combined")
   
-  
   # Severe Acute Malnutrition 
   df <- df %>%
     mutate(
@@ -270,21 +242,7 @@ for (file in file_names) {
     mutate(blank = NA) %>%
     set_variable_labels(blank = "-")
   
-  
-  # fre(df$wast)
-  # fre(df$sev_wast)
-  # cro_rpct(df$Region, df$sev_wast)
-  # fre(df$muac_125)
-  # fre(df$muac_115)
-  # fre(df$oedema)
-  # 
-  # fre(df$sam)
-  # fre(df$gam)
-  
-  
   # View valid N of all indicators
-  
-  # List of indicators
   indicators <- c("sev_wast", "muac_115", "oedema", "sam", "wast", "muac_125", "gam")
   
   df %>%
@@ -310,8 +268,7 @@ for (file in file_names) {
       ),
     total_row
   )
-  
-  View(valid_n_table)
+  # View(valid_n_table)
   
   
   # summarise function (used in tables)
@@ -383,7 +340,7 @@ for (file in file_names) {
   }
   full_table <- replace_names_with_labels(full_table, get(df_name), indicators)
   assign(table_name, full_table)
-  View(get(table_name))
+  # View(get(table_name))
   
   
   # **************************************************************************************************
@@ -423,9 +380,7 @@ for (file in file_names) {
   
   full_table <- replace_names_with_labels(full_table, get(df_name), indicators)
   assign(table_name, full_table)
-  View(get(table_name))
-  
-  
+  # View(get(table_name))
   
   # GAM TABLE
   table_name <- "gam_6_59m"
@@ -458,25 +413,19 @@ for (file in file_names) {
   
   full_table <- replace_names_with_labels(full_table, get(df_name), indicators)
   assign(table_name, full_table)
-  View(get(table_name))
-  
-  
+  # View(get(table_name))
 
   
-  
-  # Remove everything before the first dash and after -ANT.csv
+  # to label all tabs - use cleaned name - Remove everything before the first dash and after -ANT.csv
   cleaned_name <- sub("^[^-]+-", "", file)              # Remove before first dash
   cleaned_name <- sub("-ANT\\.csv$", "", cleaned_name)  # Remove -ANT.csv at end
   print(cleaned_name)
-  
-  
   
   country_name <- df$country[!is.na(df$country)][1]
   survey_name  <- df$survey[!is.na(df$survey)][1]
   survey_year  <- df$year[!is.na(df$year)][1]
   start <- min(df$date_measure, na.rm = TRUE)
   end <- max(df$date_measure, na.rm = TRUE)
-  
   
   # Define file, sheet, and cell position
   file_path <- paste0("C:/Users/rojohnston/Downloads/WHO_indicators_", country_name, ".xlsx")
@@ -492,8 +441,6 @@ for (file in file_names) {
     }
   }
   addWorksheet(wb, sheet_name)
-  
-  
   
   x = 2
   y = 5
@@ -519,43 +466,61 @@ for (file in file_names) {
   writeData(wb, sheet = sheet_name, x = gam_6_59m, startCol = x, startRow = y+1)
   
   
-  # WHZ distributions
-  if ("whz" %in% names(df) && all(!is.na(df$whz))) {  # if whz is not present or all missing - skip
-        df_clean <- df %>%
-      filter(!is.na(whz), !is.na(Region))
+  # WHZ Plot
+  if ("whz" %in% names(df) && any(!is.na(df$whz))) { # if whz is not present or all missing - skip
+    df_clean <- df %>% filter(!is.na(whz), !is.na(Region))
     
-    # Plot: Histogram as % + Gaussian density curve
-    png("whz_plot.png", width = 1200, height = 800, res = 150)
-    ggplot(df_clean, aes(x = whz)) +
-      geom_histogram(aes(y = ..density.. * 100), 
-                     binwidth = 0.2, fill = "skyblue", color = "white") +
+    plot_path <- file.path(tempdir(), paste0("whz_plot_", sheet_name, ".png"))
+    
+    # Create and save WHZ plot
+    png(plot_path, width = 1200, height = 800, res = 150)
+    whz_plot <- ggplot(df_clean, aes(x = whz)) +
+      geom_histogram(aes(y = ..density.. * 100), binwidth = 0.2, fill = "skyblue", color = "white") +
       stat_function(fun = function(x) dnorm(x, mean = 0, sd = 1) * 100,
                     color = "gray", size = 1) +
       facet_wrap(~ Region) +
       scale_y_continuous(name = "Percent Density") +
       scale_x_continuous(name = "WHZ", breaks = seq(-5, 5, by = 1)) +
-      labs(title = "WHZ Percent Distribution with Gaussian Curve by Region") +
+      labs(title = "WHZ Percent Distribution in children 0–59M by Region") +
       theme_minimal() +
       theme(axis.text.x = element_text(angle = 0, hjust = 1))
+    print(whz_plot)
     dev.off()
     
-    insertImage(wb, sheet = sheet_name, file = "whz_plot.png", startRow = 5, startCol = 14, width = 6, height = 5)
+    if (!file.exists(plot_path) || file.info(plot_path)$size == 0) {
+      cat(" WHZ plot image was not saved: ", plot_path)
+    }
+    
+    cat(" Inserting WHZ plot for:", sheet_name, "\n")
+    
+    insertImage(
+      wb,
+      sheet = sheet_name,
+      file = plot_path,
+      startRow = 2,
+      startCol = 14,
+      width = 8,
+      height = 5.33,
+      units = "in"
+    )
+  } else {
+    cat("️ No valid 'whz' data found in:", sheet_name, "\n")
   }
   
-  # MUAC
-  
-  if ("muac" %in% names(df) && all(!is.na(df$muac))) {  # if muac is not present or all missing - skip
-    df_clean <- df %>%
-      filter(!is.na(whz), !is.na(Region))
+  # MUAC plot
+  if ("muac" %in% names(df) && any(!is.na(df$muac))) {  # if muac is not present or all missing - skip
+    df_clean <- df %>% filter(!is.na(muac), !is.na(Region))
     
-    # Plot: Histogram as % + Gaussian density curve
-    muac_min <- floor(min(df_clean$muac, na.rm = TRUE) / 10) * 10
-    muac_max <- ceiling(max(df_clean$muac, na.rm = TRUE) / 10) * 10
+    plot_path <- file.path(tempdir(), paste0("muac_plot_", sheet_name, ".png"))
     
-    # Plot with dynamic x-axis
-    png("muac_plot.png", width = 1200, height = 800, res = 150)
-    ggplot(df_clean, aes(x = muac)) +
-      geom_histogram(aes(y = ..density.. * 100), 
+    # Calculate limits for x axis label
+    muac_min <- max(60, floor(min(df$muac, na.rm = TRUE) / 10) * 10)  # 60 is min
+    muac_max <- min(260, floor(max(df$muac, na.rm = TRUE) / 10) * 10)  # 260 is max
+    
+    # Create and save MUAC plot
+    png(plot_path, width = 1200, height = 800, res = 150)
+    muac_plot <- ggplot(df, aes(x = muac)) +
+      geom_histogram(aes(y = ..density.. * 100),
                      binwidth = 0.2, fill = "pink", color = "pink") +
       facet_wrap(~ Region) +
       scale_y_continuous(name = "Percent Density") +
@@ -566,14 +531,35 @@ for (file in file_names) {
       ) +
       labs(title = "MUAC Percent Distribution by Region") +
       theme_minimal() +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1))
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      coord_cartesian(expand = FALSE)
+    
+    print(muac_plot)
     dev.off()
     
-    insertImage(wb, sheet = sheet_name, file = "muac_plot.png", startRow = 20, startCol = 14, width = 6, height = 5)
+    if (!file.exists(plot_path) || file.info(plot_path)$size == 0) {
+      cat(" MUAC plot image was not saved: ", plot_path)
+    }
+    cat(" Inserting MUAC plot for:", sheet_name, "\n")
     
-    # Save the file
-    saveWorkbook(wb, file_path, overwrite = TRUE)
+    insertImage(
+      wb,
+      sheet = sheet_name,
+      file = plot_path,
+      startRow = 30,
+      startCol = 14,   # Plot below WHZ graph
+      width = 8,
+      height = 5.33,
+      units = "in"
+    )
+  } else {
+    cat("️ No valid 'MUAC' data found in:", sheet_name, "\n")
   }
+  
+  # Save workbook
+  saveWorkbook(wb, file_path, overwrite = TRUE)
+  cat(" Saved Excel file to:", file_path, "\n")
+  
 }
 
 END
