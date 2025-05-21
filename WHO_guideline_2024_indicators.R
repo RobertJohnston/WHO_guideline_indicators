@@ -1,7 +1,6 @@
 # WHO_guideline_2024_indicators
 
 
-# ADD GRAPHS
 # ADD tABLES FOR mam AND 0-59m
 # cORRECT date_meas
 
@@ -32,7 +31,6 @@ datadir <- file.path(workdir, "Data")
 search_name = "Burkina"
 
 
-
 # install.packages("matrixStats")
 # install.packages("labelled")
 # install.packages("expss")
@@ -60,7 +58,6 @@ for (file in file_names) {
 
   # if sex is missing, then z-scores cannot be calculated
   # Change this line if a dataset of only muac is used. 
-  fre(df$sex)
   df <- df %>% filter(!is.na(sex))
 
   # Data Cleaning
@@ -121,16 +118,57 @@ for (file in file_names) {
   # Percentage of 6-59M child contacts with nutritional oedema 
   # Combined SAM
   
+  # Moderate
+  # ("muac_115_125", " sev_uwt","muac_115_125_24m", "sev_uwt_24m", "muac_suwt_24m")
+  
   # Underweight 
   df <- df %>%
     mutate(uwt =
              case_when(
-               waz < -2  ~ 1,
+               waz <  -2~ 1,
                waz >= -2 ~ 0,
-               is.na(whz) ~ NA_real_  # handle missing values
+               is.na(waz) ~ NA_real_  # handle missing values
              )) %>%
     set_value_labels(uwt = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(uwt = "WAZ<-2SD")
+  
+  # Severe Underweight 
+  df <- df %>%
+    mutate(sev_uwt =
+             case_when(
+               waz <  -3 ~ 1,
+               waz >= -3 ~ 0,
+               is.na(waz) ~ NA_real_  # handle missing values
+             )) %>%
+    set_value_labels(sev_uwt = c("Yes" = 1, "No" = 0)) %>%
+    set_variable_labels(sev_uwt = "WAZ<-3SD")
+  
+  
+  if (!"sev_uwt" %in% names(df)) stop("Variable 'sev_uwt' does not exist in the dataset.")
+  
+  
+  # Severe Underweight in Children < 24M 
+  df <- df %>%
+    mutate(sev_uwt_24m =
+             case_when(
+               agemons >=24 ~ NA_real_, 
+               waz <  -3 ~ 1,
+               waz >= -3 ~ 0,
+               is.na(waz) ~ NA_real_  # handle missing values
+             )) %>%
+    set_value_labels(sev_uwt_24m = c("Yes" = 1, "No" = 0)) %>%
+    set_variable_labels(sev_uwt_24m = "WAZ<-3SD in children <24M")
+  
+  # Wasted 
+  df <- df %>%
+    mutate(wast =
+             case_when(
+               whz < -2  ~ 1,
+               whz >= -2 ~ 0,
+               is.na(whz) ~ NA_real_  # handle missing values
+             )) %>%
+    set_value_labels(wast = c("Yes" = 1, "No" = 0)) %>%
+    set_variable_labels(wast = "WHZ<-2SD")
   
   # Severely wasted 
   df <- df %>%
@@ -143,16 +181,9 @@ for (file in file_names) {
     set_value_labels(sev_wast = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(sev_wast = "WHZ<-3SD")
   
-  # wasted 
-  df <- df %>%
-    mutate(wast =
-             case_when(
-               whz < -2  ~ 1,
-               whz >= -2 ~ 0,
-               is.na(whz) ~ NA_real_  # handle missing values
-             )) %>%
-    set_value_labels(wast = c("Yes" = 1, "No" = 0)) %>%
-    set_variable_labels(wast = "WHZ<-2SD")
+  
+  if (!"sev_wast" %in% names(df)) stop("Variable 'sev_wast' does not exist in the dataset.")
+  
   
   # MUAC 125 
   df <- df %>%
@@ -187,6 +218,58 @@ for (file in file_names) {
     set_value_labels(muac_110 = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(muac_110 = "MUAC<110mm")
   
+  #muac_115_119
+  df <- df %>%
+    mutate(muac_115_119 =
+             case_when(
+               muac >= 115 & muac < 120 ~ 1,
+               muac < 115 | muac >= 120 ~ 0,
+               is.na(muac) ~ NA_real_  # handle missing values
+             )) %>%
+    set_value_labels(muac_115_119 = c("Yes" = 1, "No" = 0)) %>%
+    set_variable_labels(muac_115_119 = "MUAC 115-119mm")
+  
+  # muac_115_119_24m - muac_115_119 in children under 24M
+  df <- df %>%
+    mutate(muac_115_119_24m  =
+             case_when(
+               agemons >=24 ~ NA_real_, 
+               muac >= 115 & muac < 120 ~ 1,
+               muac < 115 | muac >= 120 ~ 0,
+               is.na(muac) ~ NA_real_  # handle missing values
+             )) %>%
+    set_value_labels(muac_115_119_24m  = c("Yes" = 1, "No" = 0)) %>%
+    set_variable_labels(muac_115_119_24m  = "MUAC 115-119mm")
+  
+# mod_muac_suwt - Variable representing combined condition of 
+# child under 59m who has muac_115_119 AND sev_uwt
+  df <- df %>%
+    mutate(
+      valid_inputs = rowSums(!is.na(across(c(sev_uwt, muac_115_119)))),
+      mod_muac_suwt = case_when(
+        valid_inputs == 0 ~ NA_real_,
+        rowSums(across(c(sev_uwt, muac_115_119)) == 2, na.rm = TRUE) > 0 ~ 1,
+        TRUE ~ 0
+      )
+    ) %>%
+    set_value_labels(mod_muac_suwt = c("Yes" = 1, "No" = 0)) %>%
+    set_variable_labels(mod_muac_suwt = "MUAC 115-119 & Severe UWT in children under 24M")
+  
+  
+# mod_muac_suwt_24m - Variable representing combined condition of 
+# child under 24m who has muac_115_119 AND sev_uwt
+ df <- df %>%
+   mutate(
+     valid_inputs = rowSums(!is.na(across(c(sev_uwt_24m, muac_115_119_24m)))),
+     mod_muac_suwt_24m = case_when(
+       valid_inputs == 0 ~ NA_real_,
+       rowSums(across(c(sev_uwt_24m, muac_115_119_24m)) == 2, na.rm = TRUE) > 0 ~ 1,
+       TRUE ~ 0
+     )
+   ) %>%
+   set_value_labels(mod_muac_suwt_24m = c("Yes" = 1, "No" = 0)) %>%
+   set_variable_labels(mod_muac_suwt_24m = "MUAC 115-119 & Severe UWT in children under 24M")
+ 
   #  Oedema
   # if oedema is not recoded, check oedema_original
   df <- df %>%
@@ -311,6 +394,7 @@ for (file in file_names) {
   df_0_5m <- df %>% filter(agemons >=0 & agemons < 6)
   
   # AT RISK TABLE
+  # WHO Guideline 2024 - Indicators for at risk and acute malnutrition
   table_name <- "at_risk_0_5m"
   df_name <- "df_0_5m"
   indicators <- c("sev_wast", "muac_110",  "oedema", "uwt", "at_risk")
@@ -377,7 +461,6 @@ for (file in file_names) {
       }
     }
   }
-  
   full_table <- replace_names_with_labels(full_table, get(df_name), indicators)
   assign(table_name, full_table)
   # View(get(table_name))
@@ -410,11 +493,84 @@ for (file in file_names) {
       }
     }
   }
-  
   full_table <- replace_names_with_labels(full_table, get(df_name), indicators)
   assign(table_name, full_table)
   # View(get(table_name))
 
+  # **************************************************************************************************
+  # * Anthropometric indicators for children from 0- 59 months
+  # **************************************************************************************************
+  
+  
+  # mod_wast_0_59m TABLE   
+  table_name <- "mod_wast_0_59m"
+  df_name <- "df"  # Use full dataset of children 0-59M
+  indicators <- c("muac_115_119", "sev_uwt", "mod_muac_suwt" ,"muac_115_119_24m", "sev_uwt_24m", "mod_muac_suwt_24m")
+  
+  main_table <- get(df_name) %>%
+    group_by(Region) %>%
+    summarise_prev_table()
+  
+  total_row <- summarise_prev_table(get(df_name)) %>%
+    mutate(Region = "Total") %>%
+    select(Region, everything())
+  
+  full_table <- bind_rows(main_table, total_row)
+  
+  # Suppress % if N < 30
+  for (var in indicators) {
+    pct_col <- paste0(var, " (%)")
+    n_col   <- paste0(var, " (N)")
+    
+    if (pct_col %in% names(full_table) && n_col %in% names(full_table)) {
+      mask <- is.na(full_table[[n_col]]) | full_table[[n_col]] < 30
+      if (any(mask)) {
+        full_table[[pct_col]] <- as.character(full_table[[pct_col]])
+        full_table[[pct_col]][mask] <- " - "
+      }
+    }
+  }
+  full_table <- replace_names_with_labels(full_table, get(df_name), indicators)
+  assign(table_name, full_table)
+  # View(get(table_name))
+  
+  
+  # Children 0-59m with Wasting, MUAC, Underweight and Bilateral Oedema (all_0_59m)
+  table_name <- "all_0_59m"
+  df_name <- "df"  # Use full dataset of children 0-59M
+  indicators <- c("wast", "muac_125","oedema", "uwt" )
+  
+  main_table <- get(df_name) %>%
+    group_by(Region) %>%
+    summarise_prev_table()
+  
+  total_row <- summarise_prev_table(get(df_name)) %>%
+    mutate(Region = "Total") %>%
+    select(Region, everything())
+  
+  full_table <- bind_rows(main_table, total_row)
+  
+  # Suppress % if N < 30
+  for (var in indicators) {
+    pct_col <- paste0(var, " (%)")
+    n_col   <- paste0(var, " (N)")
+    
+    if (pct_col %in% names(full_table) && n_col %in% names(full_table)) {
+      mask <- is.na(full_table[[n_col]]) | full_table[[n_col]] < 30
+      if (any(mask)) {
+        full_table[[pct_col]] <- as.character(full_table[[pct_col]])
+        full_table[[pct_col]][mask] <- " - "
+      }
+    }
+  }
+  full_table <- replace_names_with_labels(full_table, get(df_name), indicators)
+  assign(table_name, full_table)
+  # View(get(table_name))
+  
+  
+  
+  
+  
   
   # to label all tabs - use cleaned name - Remove everything before the first dash and after -ANT.csv
   cleaned_name <- sub("^[^-]+-", "", file)              # Remove before first dash
@@ -464,10 +620,20 @@ for (file in file_names) {
   
   writeData(wb, sheet = sheet_name, x = "Children 6-59m with Global Acute Malnutrition", startCol = x, startRow = y)
   writeData(wb, sheet = sheet_name, x = gam_6_59m, startCol = x, startRow = y+1)
+  y = y + add_y
+  
+  writeData(wb, sheet = sheet_name, x = "Children 0-59m with Moderate Wasting", startCol = x, startRow = y)
+  writeData(wb, sheet = sheet_name, x = mod_wast_0_59m, startCol = x, startRow = y+1)
+  y = y + add_y
+  
+  writeData(wb, sheet = sheet_name, x = "Children 0-59m with Wasting, MUAC, Underweight and Bilateral Oedema", startCol = x, startRow = y)
+  writeData(wb, sheet = sheet_name, x = all_0_59m, startCol = x, startRow = y+1)
+
   
   
+  # add graphs
   # WHZ Plot
-  if ("whz" %in% names(df) && any(!is.na(df$whz))) { # if whz is not present or all missing - skip
+  if ("whz" %in% names(df) && any(!is.na(df$whz))) { # if whz exists or at least one non missing - continue
     df_clean <- df %>% filter(!is.na(whz), !is.na(Region))
     
     plot_path <- file.path(tempdir(), paste0("whz_plot_", sheet_name, ".png"))
@@ -498,7 +664,7 @@ for (file in file_names) {
       sheet = sheet_name,
       file = plot_path,
       startRow = 2,
-      startCol = 14,
+      startCol = 16,
       width = 8,
       height = 5.33,
       units = "in"
@@ -508,7 +674,7 @@ for (file in file_names) {
   }
   
   # MUAC plot
-  if ("muac" %in% names(df) && any(!is.na(df$muac))) {  # if muac is not present or all missing - skip
+  if ("muac" %in% names(df) && any(!is.na(df$muac))) {  # if muac exists or at least one non missing - continue
     df_clean <- df %>% filter(!is.na(muac), !is.na(Region))
     
     plot_path <- file.path(tempdir(), paste0("muac_plot_", sheet_name, ".png"))
@@ -547,7 +713,7 @@ for (file in file_names) {
       sheet = sheet_name,
       file = plot_path,
       startRow = 30,
-      startCol = 14,   # Plot below WHZ graph
+      startCol = 16,   # Plot below WHZ graph
       width = 8,
       height = 5.33,
       units = "in"
@@ -562,7 +728,6 @@ for (file in file_names) {
   
 }
 
-END
 
 
 
@@ -579,32 +744,4 @@ END
 
 
 
-# table_temp <-  df %>% 
-#   calc_cro_rpct(
-#     cell_vars = list(Region, total()),
-#     col_vars = list(sev_wast, wast, mean_haz,
-#                     # , uwt, mean_waz, ,muac_110, muac_115, muac_125, edema 
-#                     ),
-#     weight = sample_wgt,
-#     total_label = "Weighted N",
-#     total_statistic = "w_cases",
-#     total_row_position = c("below"),
-#     expss_digits(digits=1)) %>%
-#   set_caption("Child's anthropometric indicators")
-# #Note the mean haz, whz, and waz are computed for the total and not by each background variable. 
-# write.xlsx(table_temp, "WHO_guideline_indicators.xls", sheetName = "WHO_criteria", append=TRUE)
-
-# whz_summary <- df %>%
-#   group_by(Region) %>%
-#   summarise(
-#     count = sum(!is.na(whz)),
-#     mean_whz = mean(whz, na.rm = TRUE),
-#     median_whz = median(whz, na.rm = TRUE),
-#     sd_whz = sd(whz, na.rm = TRUE),
-#     min_whz = min(whz, na.rm = TRUE),
-#     max_whz = max(whz, na.rm = TRUE)
-#   ) %>%
-#   arrange(Region)
-# 
-# print(whz_summary)
 
