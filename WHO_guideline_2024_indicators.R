@@ -1,9 +1,12 @@
 # WHO_guideline_2024_indicators
 
-
+# CHECKS
 # Underweight prevalence does not correspond to Anthro Analyser
-
 # cORRECT date_meas
+# Refactor set NA_real or N<30 to "-" 
+# add Note - N<30
+# add Note - no MUAC data collected for children under 6 m
+# Add proportion WHZ only / MUAC only / WHZ + MUAC 
 
 
 # Calculation of prevalence of all screening criteria for
@@ -29,7 +32,7 @@ if (hostname == "992224APL0X0061") {
 # Set other directories
 datadir <- file.path(workdir, "Data")
 
-search_name = "Mali"
+search_name = "Afghanistan"
 
 
 # install.packages("matrixStats")
@@ -54,56 +57,13 @@ print(file_names)
 # NOTE read_csv - includes the indicator label names.  read_dta does not. 
 
 # Loop over filenames 
-# for (file in file_names) {
-#     df <- read_csv(file.path(workdir, file))
+for (file in file_names) {
+    df <- read_csv(file.path(workdir, file))
     # df <- read_csv(file.path(workdir, file, locale = locale(encoding = "UTF-8")))
     # df <- read_csv(file.path(workdir, file, locale = locale(encoding = "ISO-8859-1")))  # European languages
     # df <- read_csv(file.path(workdir, file, locale = locale(encoding = "Windows-1252"))) # Older windows excel
 
-# Loop over filenames
-for (file in file_names) {
-  cat("\n Attempting to load file:", file, "\n")
-  file_path <- file.path(workdir, file)
 
-  # Load df with no encoding first
-  df <- tryCatch(
-    {
-      read_csv(file_path)
-    },
-    error = function(e1) {
-      cat("loading df with default encoding failed. Trying UTF-8...\n")
-
-      # Try with UTF-8
-      tryCatch(
-        {
-          read_csv(file_path, locale = locale(encoding = "UTF-8"))
-        },
-        error = function(e2) {
-          cat("loading df with UTF-8 encoding failed. Trying Windows-1252... \n")
-
-          # Try with Windows-1252
-          tryCatch(
-            {
-              read_csv(file_path, locale = locale(encoding = "Windows-1252"))
-            },
-            error = function(e3) {
-              cat("loading with Windows-1252 encoding failed.", "\nReason:", conditionMessage(e3), "\n")
-              return(NULL)
-            }
-          )
-        }
-      )
-    }
-  )
-  
-  # Skip if file failed to load
-  if (is.null(df)) next
-  
-  cat("Using", file, "\n")
-  
-
-
-    
   # if sex, height, weight and MUAC is missing, then anthro cannot be assessed
   #  drop cases with missing sex, height, weight and MUAC
   #  df <- df %>% filter(if_all(c(sex, height, weight, muac), ~ !is.na(.x)))
@@ -132,8 +92,8 @@ for (file in file_names) {
   # fre(df$oedema)
 
   # If MUAC is saved in CM, convert to MM
-  if ("muac" %in% names(df) && all(!is.na(df$muac))) {  # if muac is not present or all missing - skip
-    if (mean(df$muac, na.rm = TRUE) > 12 & mean(df$muac, na.rm = TRUE) < 18) {
+  if ("muac" %in% names(df) && any(!is.na(df$muac))) {  # if muac is present or not all missing - continue
+    if (mean(df$muac, na.rm = TRUE) < 26) {
       df$muac <- df$muac * 10  # 1 cm = 10 mm
     }
   }
@@ -689,7 +649,7 @@ for (file in file_names) {
     whz_plot <- ggplot(df_clean, aes(x = whz)) +
       geom_histogram(aes(y = ..density.. * 100), binwidth = 0.2, fill = "skyblue", color = "white") +
       stat_function(fun = function(x) dnorm(x, mean = 0, sd = 1) * 100,
-                    color = "gray", size = 1) +
+                    color = "gray", linewidth = 1) +
       facet_wrap(~ Region) +
       scale_y_continuous(name = "Percent Density") +
       scale_x_continuous(name = "WHZ", breaks = seq(-5, 5, by = 1)) +
