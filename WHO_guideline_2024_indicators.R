@@ -1,7 +1,8 @@
 # WHO_guideline_2024_indicators
 
 
-# ADD tABLES FOR mam AND 0-59m
+# Underweight prevalence does not correspond to Anthro Analyser
+
 # cORRECT date_meas
 
 
@@ -28,7 +29,7 @@ if (hostname == "992224APL0X0061") {
 # Set other directories
 datadir <- file.path(workdir, "Data")
 
-search_name = "Burkina"
+search_name = "Mali"
 
 
 # install.packages("matrixStats")
@@ -53,20 +54,68 @@ print(file_names)
 # NOTE read_csv - includes the indicator label names.  read_dta does not. 
 
 # Loop over filenames 
+# for (file in file_names) {
+#     df <- read_csv(file.path(workdir, file))
+    # df <- read_csv(file.path(workdir, file, locale = locale(encoding = "UTF-8")))
+    # df <- read_csv(file.path(workdir, file, locale = locale(encoding = "ISO-8859-1")))  # European languages
+    # df <- read_csv(file.path(workdir, file, locale = locale(encoding = "Windows-1252"))) # Older windows excel
+
+# Loop over filenames
 for (file in file_names) {
-    df <- read_csv(file.path(workdir, file))
+  cat("\n Attempting to load file:", file, "\n")
+  file_path <- file.path(workdir, file)
 
-  # if sex is missing, then z-scores cannot be calculated
-  # Change this line if a dataset of only muac is used. 
-  df <- df %>% filter(!is.na(sex))
+  # Load df with no encoding first
+  df <- tryCatch(
+    {
+      read_csv(file_path)
+    },
+    error = function(e1) {
+      cat("loading df with default encoding failed. Trying UTF-8...\n")
 
+      # Try with UTF-8
+      tryCatch(
+        {
+          read_csv(file_path, locale = locale(encoding = "UTF-8"))
+        },
+        error = function(e2) {
+          cat("loading df with UTF-8 encoding failed. Trying Windows-1252... \n")
+
+          # Try with Windows-1252
+          tryCatch(
+            {
+              read_csv(file_path, locale = locale(encoding = "Windows-1252"))
+            },
+            error = function(e3) {
+              cat("loading with Windows-1252 encoding failed.", "\nReason:", conditionMessage(e3), "\n")
+              return(NULL)
+            }
+          )
+        }
+      )
+    }
+  )
+  
+  # Skip if file failed to load
+  if (is.null(df)) next
+  
+  cat("Using", file, "\n")
+  
+
+
+    
+  # if sex, height, weight and MUAC is missing, then anthro cannot be assessed
+  #  drop cases with missing sex, height, weight and MUAC
+  #  df <- df %>% filter(if_all(c(sex, height, weight, muac), ~ !is.na(.x)))
+    
   # Data Cleaning
   
   # create sample_wgt
   df <- df %>% mutate(sample_wgt = sw)
-  summary(df$sample_wgt)
+  # summary(df$sample_wgt)
   
-  df <- df %>% mutate(Region= gregion)
+  df <- df %>% mutate(Region = iconv(gregion, from = "", to = "UTF-8", sub = "byte"))
+  # fre(df$gregion)
   
   # Test if variables are completely missing  ?
   indicators <- c("sex", "agemons", "waz", "whz","measure", "muac","oedema")
@@ -80,7 +129,7 @@ for (file in file_names) {
   if ("oedema_original" %in% names(df) && all(is.na(df$oedema))) {
     df$oedema <- df$oedema_original
   }
-  
+  # fre(df$oedema)
 
   # If MUAC is saved in CM, convert to MM
   if ("muac" %in% names(df) && all(!is.na(df$muac))) {  # if muac is not present or all missing - skip
@@ -118,8 +167,13 @@ for (file in file_names) {
   # Percentage of 6-59M child contacts with nutritional oedema 
   # Combined SAM
   
-  # Moderate
-  # ("muac_115_125", " sev_uwt","muac_115_125_24m", "sev_uwt_24m", "muac_suwt_24m")
+  # Moderate Wasting at risk
+  # muac_115_125
+  # sev_uwt
+  # mod_muac_suwt
+  # muac_115_125_24m
+  # sev_uwt_24m
+  # mod_muac_suwt_24m
   
   # Underweight 
   df <- df %>%
@@ -142,9 +196,7 @@ for (file in file_names) {
              )) %>%
     set_value_labels(sev_uwt = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(sev_uwt = "WAZ<-3SD")
-  
-  
-  if (!"sev_uwt" %in% names(df)) stop("Variable 'sev_uwt' does not exist in the dataset.")
+    if (!"sev_uwt" %in% names(df)) stop("Variable 'sev_uwt' does not exist in the dataset.")
   
   
   # Severe Underweight in Children < 24M 
@@ -180,10 +232,7 @@ for (file in file_names) {
              )) %>%
     set_value_labels(sev_wast = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(sev_wast = "WHZ<-3SD")
-  
-  
-  if (!"sev_wast" %in% names(df)) stop("Variable 'sev_wast' does not exist in the dataset.")
-  
+    if (!"sev_wast" %in% names(df)) stop("Variable 'sev_wast' does not exist in the dataset.")
   
   # MUAC 125 
   df <- df %>%
@@ -245,27 +294,26 @@ for (file in file_names) {
 # child under 59m who has muac_115_119 AND sev_uwt
   df <- df %>%
     mutate(
-      valid_inputs = rowSums(!is.na(across(c(sev_uwt, muac_115_119)))),
+      # Check if both inputs are available in a row
       mod_muac_suwt = case_when(
-        valid_inputs == 0 ~ NA_real_,
-        rowSums(across(c(sev_uwt, muac_115_119)) == 2, na.rm = TRUE) > 0 ~ 1,
-        TRUE ~ 0
+        is.na(sev_uwt) | is.na(muac_115_119) ~ NA_real_,  # Either input missing
+        sev_uwt == 1 & muac_115_119 == 1 ~ 1,             # Both are 1
+        TRUE ~ 0                                          # Otherwise 0
       )
     ) %>%
     set_value_labels(mod_muac_suwt = c("Yes" = 1, "No" = 0)) %>%
-    set_variable_labels(mod_muac_suwt = "MUAC 115-119 & Severe UWT in children under 24M")
-  
+    set_variable_labels(mod_muac_suwt = "MUAC 115-119 & Severe UWT in children under 59M")
   
 # mod_muac_suwt_24m - Variable representing combined condition of 
 # child under 24m who has muac_115_119 AND sev_uwt
- df <- df %>%
-   mutate(
-     valid_inputs = rowSums(!is.na(across(c(sev_uwt_24m, muac_115_119_24m)))),
-     mod_muac_suwt_24m = case_when(
-       valid_inputs == 0 ~ NA_real_,
-       rowSums(across(c(sev_uwt_24m, muac_115_119_24m)) == 2, na.rm = TRUE) > 0 ~ 1,
-       TRUE ~ 0
-     )
+  df <- df %>%
+    mutate(
+      # Check if both inputs are available in a row
+      mod_muac_suwt_24m = case_when(
+        is.na(sev_uwt_24m) | is.na(muac_115_119_24m) ~ NA_real_,  # Either input missing
+        sev_uwt_24m == 1 & muac_115_119_24m == 1 ~ 1,             # Both are 1
+        TRUE ~ 0                                                  # Otherwise 0
+      )
    ) %>%
    set_value_labels(mod_muac_suwt_24m = c("Yes" = 1, "No" = 0)) %>%
    set_variable_labels(mod_muac_suwt_24m = "MUAC 115-119 & Severe UWT in children under 24M")
@@ -426,7 +474,6 @@ for (file in file_names) {
   assign(table_name, full_table)
   # View(get(table_name))
   
-  
   # **************************************************************************************************
   # * Anthropometric indicators for children from 6- 59 months
   # **************************************************************************************************
@@ -501,7 +548,6 @@ for (file in file_names) {
   # * Anthropometric indicators for children from 0- 59 months
   # **************************************************************************************************
   
-  
   # mod_wast_0_59m TABLE   
   table_name <- "mod_wast_0_59m"
   df_name <- "df"  # Use full dataset of children 0-59M
@@ -517,13 +563,17 @@ for (file in file_names) {
   
   full_table <- bind_rows(main_table, total_row)
   
-  # Suppress % if N < 30
+  # Suppress % if N < 30 - updated - convert to function and place above
   for (var in indicators) {
     pct_col <- paste0(var, " (%)")
     n_col   <- paste0(var, " (N)")
     
     if (pct_col %in% names(full_table) && n_col %in% names(full_table)) {
-      mask <- is.na(full_table[[n_col]]) | full_table[[n_col]] < 30
+      
+      # Create mask for low sample size OR variable is all NA
+      all_na <- all(is.na(df[[var]]))  # Check the original variable in df
+      mask <- is.na(full_table[[n_col]]) | full_table[[n_col]] < 30 | all_na
+      
       if (any(mask)) {
         full_table[[pct_col]] <- as.character(full_table[[pct_col]])
         full_table[[pct_col]][mask] <- " - "
@@ -566,10 +616,6 @@ for (file in file_names) {
   full_table <- replace_names_with_labels(full_table, get(df_name), indicators)
   assign(table_name, full_table)
   # View(get(table_name))
-  
-  
-  
-  
   
   
   # to label all tabs - use cleaned name - Remove everything before the first dash and after -ANT.csv
@@ -630,8 +676,8 @@ for (file in file_names) {
   writeData(wb, sheet = sheet_name, x = all_0_59m, startCol = x, startRow = y+1)
 
   
-  
   # add graphs
+  
   # WHZ Plot
   if ("whz" %in% names(df) && any(!is.na(df$whz))) { # if whz exists or at least one non missing - continue
     df_clean <- df %>% filter(!is.na(whz), !is.na(Region))
