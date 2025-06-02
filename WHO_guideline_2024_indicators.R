@@ -1,12 +1,16 @@
 # WHO_guideline_2024_indicators
 
 # CHECKS
-# Underweight prevalence does not correspond to Anthro Analyser
-# cORRECT date_meas
+
 # Refactor set NA_real or N<30 to "-" 
 # add Note - N<30
 # add Note - no MUAC data collected for children under 6 m
 # Add proportion WHZ only / MUAC only / WHZ + MUAC 
+# double check oedema
+
+# If SD of WAZ or WHZ is >1.2 then calculate prev from mean. 
+
+# add graph of WHZ age, WAZ age, MUAC age over age in months
 
 
 # Calculation of prevalence of all screening criteria for
@@ -21,23 +25,25 @@ hostname <- Sys.info()[['nodename']]  # or Sys.info()[["nodename"]]
 # Setting work directory based on host
 if (hostname == "992224APL0X0061") {
   # Robert UNICEF PC
-  workdir <- "C:/Users/rojohnston/UNICEF/Data and Analytics Nutrition - Analysis Space/Child Anthropometry/1- Anthropometry Analysis Script/Prepped Country Data Files/CSV"
-} else if (hostname == "MY-LAPTOP") {
+  workdir <- "C:/Users/rojohnston/UNICEF"
+} else if (hostname == "DESKTOP-IMTUODA") {
   # Your laptop
-  workdir <- "D:/Projects/Seasonality/"
+  workdir <- "C:/Users/stupi/UNICEF"
 } else {
   stop("Unrecognized hostname, Set 'workdir' manually.")
 }
 
 # Set other directories
-datadir <- file.path(workdir, "Data")
+datadir <- file.path(workdir, "Data and Analytics Nutrition - Analysis Space/Child Anthropometry/1- Anthropometry Analysis Script/Prepped Country Data Files/CSV")
+outputdir <- file.path(workdir, "Data and Analytics Nutrition - Working Space/Wasting Cascade/WHO 2024 Country Profiles")
 
-search_name = "Afghanistan"
+search_name = "Burkina"
 
 
 # install.packages("matrixStats")
 # install.packages("labelled")
 # install.packages("expss")
+# install.packages("maditr")
 
 # Load libraries
 library(readr)
@@ -50,7 +56,7 @@ library(dplyr)
 library(openxlsx)
 
 # Collect list of files with name of country included
-files <- list.files(path = workdir, pattern = search_name, full.names = TRUE)
+files <- list.files(path = datadir, pattern = search_name, full.names = TRUE)
 file_names <- basename(files)
 print(file_names)
 
@@ -58,10 +64,10 @@ print(file_names)
 
 # Loop over filenames 
 for (file in file_names) {
-    df <- read_csv(file.path(workdir, file))
-    # df <- read_csv(file.path(workdir, file, locale = locale(encoding = "UTF-8")))
-    # df <- read_csv(file.path(workdir, file, locale = locale(encoding = "ISO-8859-1")))  # European languages
-    # df <- read_csv(file.path(workdir, file, locale = locale(encoding = "Windows-1252"))) # Older windows excel
+    df <- read_csv(file.path(datadir, file))
+    # df <- read_csv(file.path(datadir, file, locale = locale(encoding = "UTF-8")))
+    # df <- read_csv(file.path(datadir, file, locale = locale(encoding = "ISO-8859-1")))  # European languages
+    # df <- read_csv(file.path(datadir, file, locale = locale(encoding = "Windows-1252"))) # Older windows excel
 
 
   # if sex, height, weight and MUAC is missing, then anthro cannot be assessed
@@ -93,10 +99,14 @@ for (file in file_names) {
 
   # If MUAC is saved in CM, convert to MM
   if ("muac" %in% names(df) && any(!is.na(df$muac))) {  # if muac is present or not all missing - continue
-    if (mean(df$muac, na.rm = TRUE) < 26) {
+    if (mean(df$muac, na.rm = TRUE) < 26) {  # 26 is max in CM that can be measured with child MUAC tape. 
       df$muac <- df$muac * 10  # 1 cm = 10 mm
     }
   }
+  
+  # Convert date_measure to a date
+  df <- df %>% mutate(date_measure = as.Date(date_measure, format = "%d%b%Y"))
+  
   
   # sev_wast		"Severely wasted child under 5 years - WHZ"
   # wast			  "Wasted child under 5 years - WHZ"
@@ -137,23 +147,25 @@ for (file in file_names) {
   
   # Underweight 
   df <- df %>%
-    mutate(uwt =
-             case_when(
-               waz <  -2~ 1,
-               waz >= -2 ~ 0,
-               is.na(waz) ~ NA_real_  # handle missing values
-             )) %>%
+    mutate(uwt = wazB) %>%
+    # mutate(uwt =
+    #          case_when(
+    #            waz <  -2~ 1,
+    #            waz >= -2 ~ 0,
+    #            is.na(waz) ~ NA_real_  # handle missing values
+    #          )) %>%
     set_value_labels(uwt = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(uwt = "WAZ<-2SD")
   
   # Severe Underweight 
   df <- df %>%
-    mutate(sev_uwt =
-             case_when(
-               waz <  -3 ~ 1,
-               waz >= -3 ~ 0,
-               is.na(waz) ~ NA_real_  # handle missing values
-             )) %>%
+    mutate(sev_uwt = wazA) %>%
+    # mutate(sev_uwt =
+    #          case_when(
+    #            waz <  -3 ~ 1,
+    #            waz >= -3 ~ 0,
+    #            is.na(waz) ~ NA_real_  # handle missing values
+    #          )) %>%
     set_value_labels(sev_uwt = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(sev_uwt = "WAZ<-3SD")
     if (!"sev_uwt" %in% names(df)) stop("Variable 'sev_uwt' does not exist in the dataset.")
@@ -161,35 +173,38 @@ for (file in file_names) {
   
   # Severe Underweight in Children < 24M 
   df <- df %>%
-    mutate(sev_uwt_24m =
-             case_when(
-               agemons >=24 ~ NA_real_, 
-               waz <  -3 ~ 1,
-               waz >= -3 ~ 0,
-               is.na(waz) ~ NA_real_  # handle missing values
-             )) %>%
+    mutate(sev_uwt_24m = if_else(agemons < 24, wazA, NA_real_)) %>%
+    # mutate(sev_uwt_24m =
+    #          case_when(
+    #            agemons >=24 ~ NA_real_, 
+    #            waz <  -3 ~ 1,
+    #            waz >= -3 ~ 0,
+    #            is.na(waz) ~ NA_real_  # handle missing values
+    #          )) %>%
     set_value_labels(sev_uwt_24m = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(sev_uwt_24m = "WAZ<-3SD in children <24M")
   
   # Wasted 
   df <- df %>%
-    mutate(wast =
-             case_when(
-               whz < -2  ~ 1,
-               whz >= -2 ~ 0,
-               is.na(whz) ~ NA_real_  # handle missing values
-             )) %>%
+    mutate(wast = whzB) %>%
+    # mutate(wast =
+    #          case_when(
+    #            whz < -2  ~ 1,
+    #            whz >= -2 ~ 0,
+    #            is.na(whz) ~ NA_real_  # handle missing values
+    #          )) %>%
     set_value_labels(wast = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(wast = "WHZ<-2SD")
   
   # Severely wasted 
   df <- df %>%
-    mutate(sev_wast =
-             case_when(
-               whz < -3  ~ 1,
-               whz >= -3 ~ 0,
-               is.na(whz) ~ NA_real_  # handle missing values
-             )) %>%
+    mutate(sev_wast = whzA) %>%
+        # mutate(sev_wast =
+    #          case_when(
+    #            whz < -3  ~ 1,
+    #            whz >= -3 ~ 0,
+    #            is.na(whz) ~ NA_real_  # handle missing values
+    #          )) %>%
     set_value_labels(sev_wast = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(sev_wast = "WHZ<-3SD")
     if (!"sev_wast" %in% names(df)) stop("Variable 'sev_wast' does not exist in the dataset.")
@@ -281,10 +296,19 @@ for (file in file_names) {
   #  Oedema
   # if oedema is not recoded, check oedema_original
   df <- df %>%
-    mutate(oedema =
+    mutate(oedema = 
              case_when(
                oedema == "Oui" ~ 1,
+               oedema == "Yes" ~ 1,
+               oedema == "yes" ~ 1,
+               oedema == "Y" ~ 1,
+               oedema == "y" ~ 1,
+               oedema == "1" ~ 1,
                oedema == "n" ~ 0,
+               oedema == "N" ~ 0,
+               oedema == "non" ~ 0,
+               oedema == "Non" ~ 0,
+               oedema == "0" ~ 0,
                is.na(oedema) ~ NA_real_  # handle missing values
              )) %>%
     set_value_labels(oedema = c("Yes" = 1, "No" = 0)) %>%
@@ -586,23 +610,29 @@ for (file in file_names) {
   country_name <- df$country[!is.na(df$country)][1]
   survey_name  <- df$survey[!is.na(df$survey)][1]
   survey_year  <- df$year[!is.na(df$year)][1]
+  
+  # Correct date representation
   start <- min(df$date_measure, na.rm = TRUE)
+  start_2 <- format(min(df$date_measure, na.rm = TRUE), "%d-%b-%Y")
   end <- max(df$date_measure, na.rm = TRUE)
+  end_2 <- format(max(df$date_measure, na.rm = TRUE), "%d-%b-%Y")
+  
+
   
   # Define file, sheet, and cell position
-  file_path <- paste0("C:/Users/rojohnston/Downloads/WHO_indicators_", country_name, ".xlsx")
-  sheet_name <- cleaned_name # use 
+  file_name <- file.path(outputdir, paste0("WHO_indicators_", country_name, ".xlsx"))
+  tab_name <- cleaned_name # use 
 
-  if (!file.exists(file_path)) {
+  if (!file.exists(file_name)) {
     wb <- createWorkbook()
   } else {
-    wb <- loadWorkbook(file_path)
+    wb <- loadWorkbook(file_name)
     
-    if (sheet_name %in% names(wb)) {
-      removeWorksheet(wb, sheet_name)  # drop if not clean
+    if (tab_name %in% names(wb)) {
+      removeWorksheet(wb, tab_name)  # drop if not clean
     }
   }
-  addWorksheet(wb, sheet_name)
+  addWorksheet(wb, tab_name)
   
   x = 2
   y = 5
@@ -610,30 +640,30 @@ for (file in file_names) {
   
   # Write Country, Survey Type, Start and End Date
   note1 <- paste("Country:", country_name,"   Survey:", survey_name, survey_year)
-  note2 <- paste("Survey data collection from", start, "to", end)
+  note2 <- paste("Survey data collection from", start_2, "to", end_2)
   
-  writeData(wb, sheet = sheet_name, x = "WHO Guideline 2024 - Indicators for at risk and acute malnutrition", startCol = 2, startRow = 1)
-  writeData(wb, sheet = sheet_name, x = note1, startCol = 2, startRow = 2)
-  writeData(wb, sheet = sheet_name, x = note2, startCol = 2, startRow = 3)
+  writeData(wb, sheet = tab_name, x = "WHO Guideline 2024 - Indicators for at risk and acute malnutrition", startCol = 2, startRow = 1)
+  writeData(wb, sheet = tab_name, x = note1, startCol = 2, startRow = 2)
+  writeData(wb, sheet = tab_name, x = note2, startCol = 2, startRow = 3)
   
-  writeData(wb, sheet = sheet_name, x = "Infants from 0-5m at risk of poor growth and development", startCol = x, startRow = y)
-  writeData(wb, sheet = sheet_name, x = at_risk_0_5m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = tab_name, x = "Infants from 0-5m at risk of poor growth and development", startCol = x, startRow = y)
+  writeData(wb, sheet = tab_name, x = at_risk_0_5m, startCol = x, startRow = y+1)
   y = y + add_y
   
-  writeData(wb, sheet = sheet_name, x = "Children 6-59m with Severe Acute Malnutrition", startCol = x, startRow = y)
-  writeData(wb, sheet = sheet_name, x = sam_6_59m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = tab_name, x = "Children 6-59m with Severe Acute Malnutrition", startCol = x, startRow = y)
+  writeData(wb, sheet = tab_name, x = sam_6_59m, startCol = x, startRow = y+1)
   y = y + add_y
   
-  writeData(wb, sheet = sheet_name, x = "Children 6-59m with Global Acute Malnutrition", startCol = x, startRow = y)
-  writeData(wb, sheet = sheet_name, x = gam_6_59m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = tab_name, x = "Children 6-59m with Global Acute Malnutrition", startCol = x, startRow = y)
+  writeData(wb, sheet = tab_name, x = gam_6_59m, startCol = x, startRow = y+1)
   y = y + add_y
   
-  writeData(wb, sheet = sheet_name, x = "Children 0-59m with Moderate Wasting", startCol = x, startRow = y)
-  writeData(wb, sheet = sheet_name, x = mod_wast_0_59m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = tab_name, x = "Children 0-59m with Moderate Wasting", startCol = x, startRow = y)
+  writeData(wb, sheet = tab_name, x = mod_wast_0_59m, startCol = x, startRow = y+1)
   y = y + add_y
   
-  writeData(wb, sheet = sheet_name, x = "Children 0-59m with Wasting, MUAC, Underweight and Bilateral Oedema", startCol = x, startRow = y)
-  writeData(wb, sheet = sheet_name, x = all_0_59m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = tab_name, x = "Children 0-59m with Wasting, MUAC, Underweight and Bilateral Oedema", startCol = x, startRow = y)
+  writeData(wb, sheet = tab_name, x = all_0_59m, startCol = x, startRow = y+1)
 
   
   # add graphs
@@ -642,7 +672,7 @@ for (file in file_names) {
   if ("whz" %in% names(df) && any(!is.na(df$whz))) { # if whz exists or at least one non missing - continue
     df_clean <- df %>% filter(!is.na(whz), !is.na(Region))
     
-    plot_path <- file.path(tempdir(), paste0("whz_plot_", sheet_name, ".png"))
+    plot_path <- file.path(tempdir(), paste0("whz_plot_", tab_name, ".png"))
     
     # Create and save WHZ plot
     png(plot_path, width = 1200, height = 800, res = 150)
@@ -663,11 +693,11 @@ for (file in file_names) {
       cat(" WHZ plot image was not saved: ", plot_path)
     }
     
-    cat(" Inserting WHZ plot for:", sheet_name, "\n")
+    cat(" Inserting WHZ plot for:", tab_name, "\n")
     
     insertImage(
       wb,
-      sheet = sheet_name,
+      sheet = tab_name,
       file = plot_path,
       startRow = 2,
       startCol = 16,
@@ -676,14 +706,14 @@ for (file in file_names) {
       units = "in"
     )
   } else {
-    cat("️ No valid 'whz' data found in:", sheet_name, "\n")
+    cat("️ No valid 'whz' data found in:", tab_name, "\n")
   }
   
   # MUAC plot
   if ("muac" %in% names(df) && any(!is.na(df$muac))) {  # if muac exists or at least one non missing - continue
     df_clean <- df %>% filter(!is.na(muac), !is.na(Region))
     
-    plot_path <- file.path(tempdir(), paste0("muac_plot_", sheet_name, ".png"))
+    plot_path <- file.path(tempdir(), paste0("muac_plot_", tab_name, ".png"))
     
     # Calculate limits for x axis label
     muac_min <- max(60, floor(min(df$muac, na.rm = TRUE) / 10) * 10)  # 60 is min
@@ -712,11 +742,11 @@ for (file in file_names) {
     if (!file.exists(plot_path) || file.info(plot_path)$size == 0) {
       cat(" MUAC plot image was not saved: ", plot_path)
     }
-    cat(" Inserting MUAC plot for:", sheet_name, "\n")
+    cat(" Inserting MUAC plot for:", tab_name, "\n")
     
     insertImage(
       wb,
-      sheet = sheet_name,
+      sheet = tab_name,
       file = plot_path,
       startRow = 30,
       startCol = 16,   # Plot below WHZ graph
@@ -725,12 +755,12 @@ for (file in file_names) {
       units = "in"
     )
   } else {
-    cat("️ No valid 'MUAC' data found in:", sheet_name, "\n")
+    cat("️ No valid 'MUAC' data found in:", tab_name, "\n")
   }
   
   # Save workbook
-  saveWorkbook(wb, file_path, overwrite = TRUE)
-  cat(" Saved Excel file to:", file_path, "\n")
+  saveWorkbook(wb, file_name, overwrite = TRUE)
+  cat(" Saved Excel file to:", file_name, "\n")
   
 }
 
