@@ -65,7 +65,7 @@ print(file_names)
 # NOTE read_csv - includes the indicator label names.  read_dta does not. 
 
 # To open one specific dataframe
-# df <- read_csv(file.path(datadir, "Afghanistan-2013-SMART-ANT.csv"))
+ df <- read_csv(file.path(datadir, "South_Sudan-2010-MICS-ANT.csv"))
 
 # Loop over filenames 
 for (file in file_names) {
@@ -651,7 +651,7 @@ for (file in file_names) {
   note_u6M <- paste("Note: All N are unweighted cases. Estimates with <30 unweighted cases are presented as '-'.  MUAC was often not collected for children <6M.")
   note3 <- paste("Note: All N are unweighted cases. Estimates with <30 unweighted cases are presented as '-'.")
   
-    writeData(wb, sheet = tab_name, x = "WHO Guideline 2024 - Indicators for at risk and acute malnutrition", startCol = 2, startRow = 1)
+  writeData(wb, sheet = tab_name, x = "WHO Guideline 2024 - Indicators for at risk and acute malnutrition", startCol = 2, startRow = 1)
   writeData(wb, sheet = tab_name, x = note1, startCol = 2, startRow = 2)
   writeData(wb, sheet = tab_name, x = note2, startCol = 2, startRow = 3)
   
@@ -809,6 +809,31 @@ for (file in file_names) {
   print(sam_plot)
   dev.off()
   
+  # SAM PLOT 2
+  png(plot_path, width = 1200, height = 800, res = 150)
+  
+  sam_plot <- ggplot(df_long, aes(x = agemons_complete, y = mean_value, color = indicator, linetype = indicator)) +
+    # Plot smoothed lines only for indicators that are not oedema
+    geom_smooth(data = subset(df_long, indicator != "oedema"),
+                method = "loess", span = 0.75, se = TRUE, size = 1) +
+    # Plot points only for oedema
+    geom_point(data = subset(df_long, indicator == "oedema"),
+               size = 2, shape = 16) +
+    scale_color_manual(values = indicator_colors) +
+    scale_linetype_manual(values = indicator_linetypes) +
+    scale_x_continuous(breaks = seq(0, max(df_long$agemons_complete, na.rm = TRUE), by = 6)) +
+    labs(
+      title = "Prevalence of severe acute malnutrition by age in months",
+      x = "Age in Months",
+      y = "Prevalence (%)",
+      color = "Indicator",
+      linetype = "Indicator"
+    ) +
+    theme_minimal()
+  
+  print(sam_plot)
+  dev.off()
+  
   if (!file.exists(plot_path) || file.info(plot_path)$size == 0) {
     cat("SAM plot image was not saved: ", plot_path)
   } else {
@@ -817,7 +842,7 @@ for (file in file_names) {
         wb,
         sheet = tab_name,
         file = plot_path,
-        startRow = 27,
+        startRow = 24,
         startCol = 16,
         width = 8,
         height = 5.33,
@@ -825,6 +850,7 @@ for (file in file_names) {
       )
   }
   
+
   
   
   # WHZ Plot
@@ -858,7 +884,7 @@ for (file in file_names) {
       wb,
       sheet = tab_name,
       file = plot_path,
-      startRow = 54,
+      startRow = 45,
       startCol = 16,
       width = 8,
       height = 5.33,
@@ -907,7 +933,7 @@ for (file in file_names) {
       wb,
       sheet = tab_name,
       file = plot_path,
-      startRow = 80,
+      startRow = 73,
       startCol = 16,   # Plot below WHZ graph
       width = 8,
       height = 5.33,
