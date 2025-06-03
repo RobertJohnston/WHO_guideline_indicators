@@ -1,26 +1,28 @@
 # WHO_guideline_2024_indicators
 
+
 # CHECKS
 
 # Refactor set NA_real or N<30 to "-" 
-# add Note - N<30
-# add Note - no MUAC data collected for children under 6 m
-# Add proportion WHZ only / MUAC only / WHZ + MUAC 
+
 # double check oedema
 
 # If SD of WAZ or WHZ is >1.2 then calculate prev from mean. 
 
-# add graph of WHZ age, WAZ age, MUAC age over age in months
+# Add proportion WHZ only / MUAC only / WHZ + MUAC 
 
 
+
+# Purpose of the code :
 # Calculation of prevalence of all screening criteria for
 # screening criteria included in 2024 WHO Guideline
+# & Methods to Estimate Caseloads of Children with Moderate Wasting using Individual Risk Factors.
 
 # Clear environment
 rm(list = ls())
 
 # Host-specific setting of hostname
-hostname <- Sys.info()[['nodename']]  # or Sys.info()[["nodename"]]
+hostname <- Sys.info()[['nodename']]  # use Sys.info()[["nodename"]] to find hostname
 
 # Setting work directory based on host
 if (hostname == "992224APL0X0061") {
@@ -37,7 +39,7 @@ if (hostname == "992224APL0X0061") {
 datadir <- file.path(workdir, "Data and Analytics Nutrition - Analysis Space/Child Anthropometry/1- Anthropometry Analysis Script/Prepped Country Data Files/CSV")
 outputdir <- file.path(workdir, "Data and Analytics Nutrition - Working Space/Wasting Cascade/WHO 2024 Country Profiles")
 
-search_name = "Burkina"
+search_name = "Afghanistan"
 
 
 # install.packages("matrixStats")
@@ -61,6 +63,8 @@ file_names <- basename(files)
 print(file_names)
 
 # NOTE read_csv - includes the indicator label names.  read_dta does not. 
+
+df <- read_csv(file.path(datadir, "Afghanistan-2013-SMART-ANT.csv"))
 
 # Loop over filenames 
 for (file in file_names) {
@@ -123,7 +127,7 @@ for (file in file_names) {
   # Infants under 6 months of age at risk of poor growth and development 
   
   # Percentage of infant contacts with WAZ <-2 SD of WHO child growth standards
-  # Percentage of infant contacts with severe wasting by WHZ (WHZ < - 3 SD of WHO child growth standards)
+  # Percentage of infant contacts with wasting by WHZ (WHZ <-2 SD of WHO child growth standards)
   # Percentage of infant contacts with severe wasting by MUAC (MUAC < 110mm)
   # Percentage of infant contacts with nutritional oedema 
   # Percentage of infant contacts with recent weight loss (not available from surveys)
@@ -169,7 +173,6 @@ for (file in file_names) {
     set_value_labels(sev_uwt = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(sev_uwt = "WAZ<-3SD")
     if (!"sev_uwt" %in% names(df)) stop("Variable 'sev_uwt' does not exist in the dataset.")
-  
   
   # Severe Underweight in Children < 24M 
   df <- df %>%
@@ -231,13 +234,14 @@ for (file in file_names) {
     set_value_labels(muac_115 = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(muac_115 = "MUAC<115mm")
   
-  # MUAC 110 
+  # MUAC 110 for infants from 6 weeks to <6 months of age 
   df <- df %>%
     mutate(muac_110 =
              case_when(
                muac < 110 ~ 1,
                muac >= 110 ~ 0,
-               is.na(muac) ~ NA_real_  # handle missing values
+               is.na(muac) ~ NA_real_,  # handle missing values
+               agemons < 1.5 ~ NA_real_  # If <6 weeks, set to missing
              )) %>%
     set_value_labels(muac_110 = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(muac_110 = "MUAC<110mm")
@@ -314,20 +318,20 @@ for (file in file_names) {
     set_value_labels(oedema = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(oedema = "bilateral oedema")
   
-  # At Risk Combined
+  # At Risk Combined (0-5 months)
   df <- df %>%
     mutate(
-      valid_inputs = rowSums(!is.na(across(c(uwt, sev_wast, muac_110, oedema)))),
+      valid_inputs = rowSums(!is.na(across(c(uwt, wast, muac_110, oedema)))),
       at_risk = case_when(
         valid_inputs == 0 ~ NA_real_,
-        rowSums(across(c(uwt, sev_wast, muac_110, oedema)) == 1, na.rm = TRUE) > 0 ~ 1,
+        rowSums(across(c(uwt, wast, muac_110, oedema)) == 1, na.rm = TRUE) > 0 ~ 1,
         TRUE ~ 0
       )
     ) %>%
     set_value_labels(at_risk = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(at_risk = "At Risk Combined")
   
-  # Severe Acute Malnutrition 
+  # Severe Acute Malnutrition (6-59 months)
   df <- df %>%
     mutate(
       valid_inputs = rowSums(!is.na(across(c(sev_wast, muac_115, oedema)))),
@@ -423,13 +427,13 @@ for (file in file_names) {
   # * Anthropometric indicators for children under age 6 months
   # **************************************************************************************************
   
-  df_0_5m <- df %>% filter(agemons >=0 & agemons < 6)
+  df_0_5m <- df %>% filter(agemons >=0 & agemons <6)
   
   # AT RISK TABLE
   # WHO Guideline 2024 - Indicators for at risk and acute malnutrition
   table_name <- "at_risk_0_5m"
   df_name <- "df_0_5m"
-  indicators <- c("sev_wast", "muac_110",  "oedema", "uwt", "at_risk")
+  indicators <- c("wast", "muac_110",  "oedema", "uwt", "at_risk")
   
   main_table <- get(df_name) %>%
     group_by(Region) %>%
@@ -612,10 +616,8 @@ for (file in file_names) {
   survey_year  <- df$year[!is.na(df$year)][1]
   
   # Correct date representation
-  start <- min(df$date_measure, na.rm = TRUE)
-  start_2 <- format(min(df$date_measure, na.rm = TRUE), "%d-%b-%Y")
-  end <- max(df$date_measure, na.rm = TRUE)
-  end_2 <- format(max(df$date_measure, na.rm = TRUE), "%d-%b-%Y")
+  start <- format(min(df$date_measure, na.rm = TRUE), "%d-%b-%Y")
+  end <- format(max(df$date_measure, na.rm = TRUE), "%d-%b-%Y")
   
 
   
@@ -636,11 +638,21 @@ for (file in file_names) {
   
   x = 2
   y = 5
-  add_y = length(unique(df$Region)) +4  # add rows between each pasted table
+  y_note = length(unique(df$Region)) 
+  add_y = y_note + 5  # add rows between each pasted table
+  
+  # Create a cell style with wrap text
+  wrap_style <- createStyle(wrapText = TRUE)
+  
+  # Apply the style to the desired column (e.g., first column)
+  addStyle(wb, sheet = "Sheet1", style = wrap_style, cols = 1, rows = 1:(nrow(data) + 1), gridExpand = TRUE)
+  
+  
   
   # Write Country, Survey Type, Start and End Date
   note1 <- paste("Country:", country_name,"   Survey:", survey_name, survey_year)
-  note2 <- paste("Survey data collection from", start_2, "to", end_2)
+  note2 <- paste("Survey data collection from", start, "to", end)
+  note3 <- paste("Note: All N are unweighted cases. Estimates with <30 unweighted cases are presented as '-'.  MUAC was often not collected for children <6M.")
   
   writeData(wb, sheet = tab_name, x = "WHO Guideline 2024 - Indicators for at risk and acute malnutrition", startCol = 2, startRow = 1)
   writeData(wb, sheet = tab_name, x = note1, startCol = 2, startRow = 2)
@@ -648,25 +660,170 @@ for (file in file_names) {
   
   writeData(wb, sheet = tab_name, x = "Infants from 0-5m at risk of poor growth and development", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = at_risk_0_5m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
   y = y + add_y
   
   writeData(wb, sheet = tab_name, x = "Children 6-59m with Severe Acute Malnutrition", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = sam_6_59m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
   y = y + add_y
   
   writeData(wb, sheet = tab_name, x = "Children 6-59m with Global Acute Malnutrition", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = gam_6_59m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
   y = y + add_y
   
   writeData(wb, sheet = tab_name, x = "Children 0-59m with Moderate Wasting", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = mod_wast_0_59m, startCol = x, startRow = y+1)
+  writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
   y = y + add_y
   
   writeData(wb, sheet = tab_name, x = "Children 0-59m with Wasting, MUAC, Underweight and Bilateral Oedema", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = all_0_59m, startCol = x, startRow = y+1)
-
+  writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
+  
   
   # add graphs
+  
+  # Create 'agemons_complete' and calculate weighted means by month
+  df_summary <- df %>%
+    ungroup() %>%
+    mutate(agemons_complete = floor(agemons)) %>%
+    group_by(agemons_complete) %>%
+    summarise(
+      across(
+        .cols = c(wast, sev_wast, uwt, muac_110, muac_115, oedema, at_risk, sam),
+        .fns = list(
+          N = ~ sum(!is.na(.x)),
+          mean = ~ ifelse(sum(!is.na(.x)) < 30, NA_real_,
+                          100 * weighted.mean(.x, sample_wgt, na.rm = TRUE))
+        ),
+        .names = "{.col}_{.fn}"
+      ),
+      .groups = "drop"
+    ) %>%
+    rename(
+      wasting = wast_mean,
+      severe_wasting = sev_wast_mean,
+      underweight = uwt_mean,
+      muac_110mm = muac_110_mean,
+      muac_115mm = muac_115_mean,
+      oedema = oedema_mean, 
+      at_risk_combined = at_risk_mean,
+      sam_combined = sam_mean
+    )
+  
+  # If muac is missing, replace with NA_real
+  if (all(is.na(df$muac_115))) {
+    df_summary$muac_115mm <- NA_real_
+  }
+  if (all(is.na(df$muac_110))) {
+    df_summary$muac_110mm <- NA_real_
+  }
+  
+  # graph of prevalence of infants at risk of poor growth and development (0-5M) by agemons
+  
+  plot_path <- file.path(tempdir(), paste0("at_risk_plot_", tab_name, ".png"))
+  
+  #  Pivot to long format for plotting
+  df_long <- df_summary %>%
+    pivot_longer(cols = c(wasting, underweight, muac_110mm, at_risk_combined),
+                 names_to = "indicator",
+                 values_to = "mean_value")
+  
+  # Set colors and line types
+  indicator_colors <- c("underweight" = "#1e90ff", "wasting" = "#ff69b4", "muac_110mm" = "red", "at_risk_combined" = "purple" )
+  indicator_linetypes <- c("underweight" = "solid", "wasting" = "solid" , "muac_110mm" = "dotted", "at_risk_combined" = "solid")
+  
+  # Create and save At Risk plot
+  png(plot_path, width = 1200, height = 800, res = 150)
+  at_risk_plot <-  ggplot(df_long, aes(x = agemons_complete, y = mean_value, color = indicator, linetype = indicator)) +
+    # geom_point(alpha = 0.5) +
+    geom_smooth(method = "loess", span = 0.9, se = FALSE, size = 1) +
+    scale_color_manual(values = indicator_colors) +
+    scale_linetype_manual(values = indicator_linetypes) +
+    scale_y_continuous(limits = c(0, NA)) +                # Start y-axis at 0
+    scale_x_continuous(limits = c(0,5)) +  # Set x-axis to 0 - 5
+    labs(
+      title = "Prevalence of infants at risk of poor growth and development by age in months",
+      x = "Age in Months",
+      y = "Prevalence (%)",
+      color = "Indicator",
+      linetype = "Indicator",
+      caption = "Note: If the planned data collection did not include MUAC measures for infants <6 months, the MUAC 115mm trend is not representative"
+    ) +
+    theme_minimal() +
+    theme(plot.caption = element_text(hjust = 0))  # left-align caption
+  print(at_risk_plot)
+  dev.off()
+  
+  if (!file.exists(plot_path) || file.info(plot_path)$size == 0) {
+    cat("At risk plot image was not saved: ", plot_path)
+  } else {
+    cat(" Inserting At Risk Plot for:", tab_name, "\n")
+      insertImage(
+      wb,
+      sheet = tab_name,
+      file = plot_path,
+      startRow = 2,
+      startCol = 16,
+      width = 8,
+      height = 5.33,
+      units = "in"
+    )
+  }
+  
+  # graph of severe acute malnutrition by age from 0-59m
+  
+  plot_path <- file.path(tempdir(), paste0("sam_plot_", tab_name, ".png"))
+  
+  #  Pivot to long format for plotting
+  df_long <- df_summary %>%
+    pivot_longer(cols = c(severe_wasting, muac_115mm, oedema, sam_combined),
+                 names_to = "indicator",
+                 values_to = "mean_value")
+  
+  # Set colors and line types
+  indicator_colors <- c("severe_wasting" = "red", "muac_115mm" = "red", oedema = "black", "sam_combined" = "darkred" )
+  indicator_linetypes <- c("severe_wasting" = "solid" , "muac_115mm" = "dotted", "oedema" = "solid", "sam_combined" = "solid")
+  
+  png(plot_path, width = 1200, height = 800, res = 150)
+  sam_plot <-ggplot(df_long, aes(x = agemons_complete, y = mean_value, color = indicator, linetype = indicator)) +
+    # geom_point(alpha = 0.5) +
+    geom_smooth(method = "loess", span = 0.75, se = TRUE, size = 1) +
+    scale_color_manual(values = indicator_colors) +
+    scale_linetype_manual(values = indicator_linetypes) +
+    # scale_y_continuous(limits = c(0, NA)) +                # Start y-axis at 0
+    scale_x_continuous(breaks = seq(0, max(df_long$agemons_complete, na.rm = TRUE), by = 6)) +  # Set x-axis to 0, 6, 12, ...
+    labs(
+      title = "Prevalence of severe acute malnutrition by age in months",
+      x = "Age in Months",
+      y = "Prevalence (%)",
+      color = "Indicator",
+      linetype = "Indicator"
+    ) +
+    theme_minimal()
+  
+  print(sam_plot)
+  dev.off()
+  
+  if (!file.exists(plot_path) || file.info(plot_path)$size == 0) {
+    cat("SAM plot image was not saved: ", plot_path)
+  } else {
+      cat(" Inserting SAM Plot for:", tab_name, "\n")
+      insertImage(
+        wb,
+        sheet = tab_name,
+        file = plot_path,
+        startRow = 30,
+        startCol = 16,
+        width = 8,
+        height = 5.33,
+        units = "in"
+      )
+  }
+  
+  
   
   # WHZ Plot
   if ("whz" %in% names(df) && any(!is.na(df$whz))) { # if whz exists or at least one non missing - continue
@@ -699,7 +856,7 @@ for (file in file_names) {
       wb,
       sheet = tab_name,
       file = plot_path,
-      startRow = 2,
+      startRow = 58,
       startCol = 16,
       width = 8,
       height = 5.33,
@@ -748,7 +905,7 @@ for (file in file_names) {
       wb,
       sheet = tab_name,
       file = plot_path,
-      startRow = 30,
+      startRow = 86,
       startCol = 16,   # Plot below WHZ graph
       width = 8,
       height = 5.33,
@@ -763,13 +920,6 @@ for (file in file_names) {
   cat(" Saved Excel file to:", file_name, "\n")
   
 }
-
-
-
-
-
-
-
 
 
 
