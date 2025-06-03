@@ -809,31 +809,6 @@ for (file in file_names) {
   print(sam_plot)
   dev.off()
   
-  # SAM PLOT 2
-  png(plot_path, width = 1200, height = 800, res = 150)
-  
-  sam_plot <- ggplot(df_long, aes(x = agemons_complete, y = mean_value, color = indicator, linetype = indicator)) +
-    # Plot smoothed lines only for indicators that are not oedema
-    geom_smooth(data = subset(df_long, indicator != "oedema"),
-                method = "loess", span = 0.75, se = TRUE, size = 1) +
-    # Plot points only for oedema
-    geom_point(data = subset(df_long, indicator == "oedema"),
-               size = 2, shape = 16) +
-    scale_color_manual(values = indicator_colors) +
-    scale_linetype_manual(values = indicator_linetypes) +
-    scale_x_continuous(breaks = seq(0, max(df_long$agemons_complete, na.rm = TRUE), by = 6)) +
-    labs(
-      title = "Prevalence of severe acute malnutrition by age in months",
-      x = "Age in Months",
-      y = "Prevalence (%)",
-      color = "Indicator",
-      linetype = "Indicator"
-    ) +
-    theme_minimal()
-  
-  print(sam_plot)
-  dev.off()
-  
   if (!file.exists(plot_path) || file.info(plot_path)$size == 0) {
     cat("SAM plot image was not saved: ", plot_path)
   } else {
