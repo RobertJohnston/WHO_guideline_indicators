@@ -39,7 +39,7 @@ if (hostname == "992224APL0X0061") {
 datadir <- file.path(workdir, "Data and Analytics Nutrition - Analysis Space/Child Anthropometry/1- Anthropometry Analysis Script/Prepped Country Data Files/CSV")
 outputdir <- file.path(workdir, "Data and Analytics Nutrition - Working Space/Wasting Cascade/WHO 2024 Country Profiles")
 
-search_name = "Afghanistan"
+search_name = "Sudan"
 
 
 # install.packages("matrixStats")
@@ -64,7 +64,8 @@ print(file_names)
 
 # NOTE read_csv - includes the indicator label names.  read_dta does not. 
 
-df <- read_csv(file.path(datadir, "Afghanistan-2013-SMART-ANT.csv"))
+# To open one specific dataframe
+# df <- read_csv(file.path(datadir, "Afghanistan-2013-SMART-ANT.csv"))
 
 # Loop over filenames 
 for (file in file_names) {
@@ -267,7 +268,7 @@ for (file in file_names) {
                is.na(muac) ~ NA_real_  # handle missing values
              )) %>%
     set_value_labels(muac_115_119_24m  = c("Yes" = 1, "No" = 0)) %>%
-    set_variable_labels(muac_115_119_24m  = "MUAC 115-119mm")
+    set_variable_labels(muac_115_119_24m  = "MUAC 115-119mm <24M")
   
 # mod_muac_suwt - Variable representing combined condition of 
 # child under 59m who has muac_115_119 AND sev_uwt
@@ -647,15 +648,16 @@ for (file in file_names) {
   # Write Country, Survey Type, Start and End Date
   note1 <- paste("Country:", country_name,"   Survey:", survey_name, survey_year)
   note2 <- paste("Survey data collection from", start, "to", end)
-  note3 <- paste("Note: All N are unweighted cases. Estimates with <30 unweighted cases are presented as '-'.  MUAC was often not collected for children <6M.")
+  note_u6M <- paste("Note: All N are unweighted cases. Estimates with <30 unweighted cases are presented as '-'.  MUAC was often not collected for children <6M.")
+  note3 <- paste("Note: All N are unweighted cases. Estimates with <30 unweighted cases are presented as '-'.")
   
-  writeData(wb, sheet = tab_name, x = "WHO Guideline 2024 - Indicators for at risk and acute malnutrition", startCol = 2, startRow = 1)
+    writeData(wb, sheet = tab_name, x = "WHO Guideline 2024 - Indicators for at risk and acute malnutrition", startCol = 2, startRow = 1)
   writeData(wb, sheet = tab_name, x = note1, startCol = 2, startRow = 2)
   writeData(wb, sheet = tab_name, x = note2, startCol = 2, startRow = 3)
   
   writeData(wb, sheet = tab_name, x = "Infants from 0-5m at risk of poor growth and development", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = at_risk_0_5m, startCol = x, startRow = y+1)
-  writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
+  writeData(wb, sheet = tab_name, x = note_u6M, startCol = 2, startRow = y + y_note + 3)
   addStyle(wb, sheet = tab_name, style = wrap_style, cols = 3:14, rows = 6, gridExpand = TRUE)
   y = y + add_y
   
@@ -671,7 +673,7 @@ for (file in file_names) {
   addStyle(wb, sheet = tab_name, style = wrap_style, cols = 3:14, rows = y+1, gridExpand = TRUE)
   y = y + add_y
   
-  writeData(wb, sheet = tab_name, x = "Children 0-59m with Moderate Wasting", startCol = x, startRow = y)
+  writeData(wb, sheet = tab_name, x = "Children 0-59m and 0-23m with Moderate Wasting", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = mod_wast_0_59m, startCol = x, startRow = y+1)
   writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
   addStyle(wb, sheet = tab_name, style = wrap_style, cols = 3:14, rows = y+1, gridExpand = TRUE)
@@ -815,7 +817,7 @@ for (file in file_names) {
         wb,
         sheet = tab_name,
         file = plot_path,
-        startRow = 30,
+        startRow = 27,
         startCol = 16,
         width = 8,
         height = 5.33,
@@ -856,7 +858,7 @@ for (file in file_names) {
       wb,
       sheet = tab_name,
       file = plot_path,
-      startRow = 58,
+      startRow = 54,
       startCol = 16,
       width = 8,
       height = 5.33,
@@ -905,7 +907,7 @@ for (file in file_names) {
       wb,
       sheet = tab_name,
       file = plot_path,
-      startRow = 86,
+      startRow = 80,
       startCol = 16,   # Plot below WHZ graph
       width = 8,
       height = 5.33,
