@@ -642,12 +642,7 @@ for (file in file_names) {
   add_y = y_note + 5  # add rows between each pasted table
   
   # Create a cell style with wrap text
-  wrap_style <- createStyle(wrapText = TRUE)
-  
-  # Apply the style to the desired column (e.g., first column)
-  addStyle(wb, sheet = "Sheet1", style = wrap_style, cols = 1, rows = 1:(nrow(data) + 1), gridExpand = TRUE)
-  
-  
+  wrap_style <- createStyle(wrapText = TRUE, halign = "center")
   
   # Write Country, Survey Type, Start and End Date
   note1 <- paste("Country:", country_name,"   Survey:", survey_name, survey_year)
@@ -661,26 +656,31 @@ for (file in file_names) {
   writeData(wb, sheet = tab_name, x = "Infants from 0-5m at risk of poor growth and development", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = at_risk_0_5m, startCol = x, startRow = y+1)
   writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
+  addStyle(wb, sheet = tab_name, style = wrap_style, cols = 3:14, rows = 6, gridExpand = TRUE)
   y = y + add_y
   
   writeData(wb, sheet = tab_name, x = "Children 6-59m with Severe Acute Malnutrition", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = sam_6_59m, startCol = x, startRow = y+1)
   writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
+  addStyle(wb, sheet = tab_name, style = wrap_style, cols = 3:14, rows = y+1, gridExpand = TRUE)
   y = y + add_y
   
   writeData(wb, sheet = tab_name, x = "Children 6-59m with Global Acute Malnutrition", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = gam_6_59m, startCol = x, startRow = y+1)
   writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
+  addStyle(wb, sheet = tab_name, style = wrap_style, cols = 3:14, rows = y+1, gridExpand = TRUE)
   y = y + add_y
   
   writeData(wb, sheet = tab_name, x = "Children 0-59m with Moderate Wasting", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = mod_wast_0_59m, startCol = x, startRow = y+1)
   writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
+  addStyle(wb, sheet = tab_name, style = wrap_style, cols = 3:14, rows = y+1, gridExpand = TRUE)
   y = y + add_y
   
   writeData(wb, sheet = tab_name, x = "Children 0-59m with Wasting, MUAC, Underweight and Bilateral Oedema", startCol = x, startRow = y)
   writeData(wb, sheet = tab_name, x = all_0_59m, startCol = x, startRow = y+1)
   writeData(wb, sheet = tab_name, x = note3, startCol = 2, startRow = y + y_note + 3)
+  addStyle(wb, sheet = tab_name, style = wrap_style, cols = 3:14, rows = y+1, gridExpand = TRUE)
   
   
   # add graphs
