@@ -785,19 +785,52 @@ for (file in file_names) {
                  values_to = "mean_value")
   
   # Set colors and line types
-  indicator_colors <- c("severe_wasting" = "red", "muac_115mm" = "red", oedema = "black", "sam_combined" = "darkred" )
+  indicator_colors <- c("severe_wasting" = "red", "muac_115mm" = "red", oedema = "black", "sam_combined" = "#8b0000" )
   indicator_linetypes <- c("severe_wasting" = "solid" , "muac_115mm" = "dotted", "oedema" = "solid", "sam_combined" = "solid")
   
+  # png(plot_path, width = 1200, height = 800, res = 150)
+  # sam_plot <-ggplot(df_long, aes(x = agemons_complete, y = mean_value, color = indicator, linetype = indicator)) +
+  #   # geom_point(alpha = 0.5) +
+  #   geom_smooth(method = "loess", span = 0.75, se = TRUE, size = 1) +
+  #   scale_color_manual(values = indicator_colors) +
+  #   scale_linetype_manual(values = indicator_linetypes) +
+  #   scale_y_continuous(
+  #     breaks = seq(0, max(df_long$mean_value, na.rm = TRUE), by = 10),
+  #     expand = expansion(mult = c(0, 0.05))) +
+  #   scale_x_continuous(breaks = seq(0, max(df_long$agemons_complete, na.rm = TRUE), by = 6)) +  # Set x-axis to 0, 6, 12, ...
+  #   labs(
+  #     title = "Prevalence of severe acute malnutrition by age in months",
+  #     x = "Age in Months",
+  #     y = "Prevalence (%)",
+  #     color = "Indicator",
+  #     linetype = "Indicator"
+  #   ) +
+  #   theme_minimal()
+  # 
+  # print(sam_plot)
+  # dev.off()
+  
+  
+  # SAM PLOT 2 - force yaxis to zero
   png(plot_path, width = 1200, height = 800, res = 150)
-  sam_plot <-ggplot(df_long, aes(x = agemons_complete, y = mean_value, color = indicator, linetype = indicator)) +
-    # geom_point(alpha = 0.5) +
+  sam_plot <- ggplot(df_long, aes(x = agemons_complete, y = mean_value, color = indicator, linetype = indicator)) +
     geom_smooth(method = "loess", span = 0.75, se = TRUE, size = 1) +
     scale_color_manual(values = indicator_colors) +
     scale_linetype_manual(values = indicator_linetypes) +
+    # Show data below zero but only label y-axis above zero
+    coord_cartesian(ylim = range(df_long$mean_value, na.rm = TRUE)) +
     scale_y_continuous(
-      breaks = seq(0, max(df_long$mean_value, na.rm = TRUE), by = 10),
-      expand = expansion(mult = c(0, 0.05))) +
-    scale_x_continuous(breaks = seq(0, max(df_long$agemons_complete, na.rm = TRUE), by = 6)) +  # Set x-axis to 0, 6, 12, ...
+      breaks = function(limits) {   # Generate breaks from zero upwards
+        pretty(c(0, max(limits[2], 0)))
+      },
+      labels = function(breaks) {
+        ifelse(breaks >= 0, as.character(breaks), "")
+      },
+      expand = expansion(mult = c(0, 0.05))
+    ) +
+    scale_x_continuous(
+      breaks = seq(0, max(df_long$agemons_complete, na.rm = TRUE), by = 6)
+    ) +
     labs(
       title = "Prevalence of severe acute malnutrition by age in months",
       x = "Age in Months",
