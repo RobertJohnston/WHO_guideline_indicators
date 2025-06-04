@@ -290,6 +290,7 @@ for (file in file_names) {
   df <- df %>%
     mutate(oedema = 
              case_when(
+               is.na(oedema) ~ NA_real_,  # handle missing values
                oedema == "Oui" ~ 1,
                oedema == "Yes" ~ 1,
                oedema == "yes" ~ 1,
@@ -301,7 +302,6 @@ for (file in file_names) {
                oedema == "non" ~ 0,
                oedema == "Non" ~ 0,
                oedema == "0" ~ 0,
-               is.na(oedema) ~ NA_real_  # handle missing values
              )) %>%
     set_variable_labels(oedema = "bilateral oedema")
   
