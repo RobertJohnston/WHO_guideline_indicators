@@ -701,10 +701,11 @@ for (file in file_names) {
       y = "Prevalence (%)",
       color = "Indicator",
       linetype = "Indicator",
-      caption = "Note: If the planned data collection did not include MUAC measures for infants <6 months, the MUAC 115mm trend is not representative"
+      caption = "Note: If the planned data collection did not include MUAC measures for infants <6 months, the MUAC 110mm trend is not representative. Estimates based on < 30 unweighted cases are supressed."
     ) +
     theme_minimal() +
     theme(plot.caption = element_text(hjust = 0))  # left-align caption
+  
   print(at_risk_plot)
   dev.off()
   
@@ -763,9 +764,11 @@ for (file in file_names) {
       x = "Age in Months",
       y = "Prevalence (%)",
       color = "Indicator",
-      linetype = "Indicator"
+      linetype = "Indicator",
+      caption = "Note: Estimates based on < 30 unweighted cases are suppressed."
     ) +
-    theme_minimal()
+    theme_minimal() +
+    theme(plot.caption = element_text(hjust = 0))  # left-align caption
   
   print(sam_plot)
   dev.off()
