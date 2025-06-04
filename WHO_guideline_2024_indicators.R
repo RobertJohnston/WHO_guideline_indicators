@@ -39,7 +39,7 @@ if (hostname == "992224APL0X0061") {
 datadir <- file.path(workdir, "Data and Analytics Nutrition - Analysis Space/Child Anthropometry/1- Anthropometry Analysis Script/Prepped Country Data Files/CSV")
 outputdir <- file.path(workdir, "Data and Analytics Nutrition - Working Space/Wasting Cascade/WHO 2024 Country Profiles")
 
-search_name = "Sudan"
+search_name = "Burkina"
 
 
 # install.packages("matrixStats")
@@ -65,7 +65,7 @@ print(file_names)
 # NOTE read_csv - includes the indicator label names.  read_dta does not. 
 
 # To open one specific dataframe
- df <- read_csv(file.path(datadir, "South_Sudan-2010-MICS-ANT.csv"))
+# file_names <- "South_Sudan-2018-FSNMS_23-ANT.csv"
 
 # Loop over filenames 
 for (file in file_names) {
@@ -74,11 +74,6 @@ for (file in file_names) {
     # df <- read_csv(file.path(datadir, file, locale = locale(encoding = "ISO-8859-1")))  # European languages
     # df <- read_csv(file.path(datadir, file, locale = locale(encoding = "Windows-1252"))) # Older windows excel
 
-
-  # if sex, height, weight and MUAC is missing, then anthro cannot be assessed
-  #  drop cases with missing sex, height, weight and MUAC
-  #  df <- df %>% filter(if_all(c(sex, height, weight, muac), ~ !is.na(.x)))
-    
   # Data Cleaning
   
   # create sample_wgt
@@ -687,10 +682,12 @@ for (file in file_names) {
   
   # add graphs
   
+  df <- df %>% mutate(agemons_complete = floor(agemons))
+
   # Create 'agemons_complete' and calculate weighted means by month
   df_summary <- df %>%
     ungroup() %>%
-    mutate(agemons_complete = floor(agemons)) %>%
+    filter(!is.na(sample_wgt)) %>%
     group_by(agemons_complete) %>%
     summarise(
       across(
@@ -817,7 +814,7 @@ for (file in file_names) {
         wb,
         sheet = tab_name,
         file = plot_path,
-        startRow = 24,
+        startRow = 26,
         startCol = 16,
         width = 8,
         height = 5.33,
@@ -859,7 +856,7 @@ for (file in file_names) {
       wb,
       sheet = tab_name,
       file = plot_path,
-      startRow = 45,
+      startRow = 52,
       startCol = 16,
       width = 8,
       height = 5.33,
@@ -908,7 +905,7 @@ for (file in file_names) {
       wb,
       sheet = tab_name,
       file = plot_path,
-      startRow = 73,
+      startRow = 75,
       startCol = 16,   # Plot below WHZ graph
       width = 8,
       height = 5.33,
@@ -926,11 +923,41 @@ for (file in file_names) {
 
 
 
+end of file
 
 
 
 
+fre(df$agemons)
 
 
+
+fre(df$agemons_complete)
+
+str(df$sample_wgt)
+
+df_summary <- df %>%
+  filter(!is.na(sample_wgt)) %>%
+  group_by(agemons_complete) %>%
+  summarise(
+    mean_uwt = weighted.mean(uwt, sample_wgt, na.rm = TRUE),    
+    N_uwt = sum(!is.na(uwt))               
+  )
+
+
+df_summary <- df %>%
+  ungroup() %>%
+  mutate(agemons_complete = floor(agemons)) %>%
+  group_by(agemons_complete) %>%
+  summarise(
+    across(
+      .cols = c(wast, sev_wast, uwt, muac_110, muac_115, oedema, at_risk, sam),
+      .fns = list(
+        N = ~ sum(!is.na(.x)),
+        mean = ~ ifelse(sum(!is.na(.x)) < 30, NA_real_,
+                        100 * weighted.mean(.x, sample_wgt, na.rm = TRUE))
+      ),
+      .names = "{.col}_{.fn}"
+    ),
 
 
