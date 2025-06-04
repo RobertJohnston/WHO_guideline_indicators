@@ -3,14 +3,13 @@
 
 # CHECKS
 
-# Refactor set NA_real or N<30 to "-" 
-
 # double check oedema
 
 # If SD of WAZ or WHZ is >1.2 then calculate prev from mean. 
 
 # Add proportion WHZ only / MUAC only / WHZ + MUAC 
 
+# Set minimum of graph label to zero
 
 
 # Purpose of the code :
@@ -103,6 +102,9 @@ for (file in file_names) {
       df$muac <- df$muac * 10  # 1 cm = 10 mm
     }
   }
+  
+  # If MUAC = outlier, set to missing 
+  df$muac <- ifelse(df$muac < 30 | df$muac > 260, NA_real_, df$muac)
   
   # Convert date_measure to a date
   df <- df %>% mutate(date_measure = as.Date(date_measure, format = "%d%b%Y"))
@@ -792,7 +794,9 @@ for (file in file_names) {
     geom_smooth(method = "loess", span = 0.75, se = TRUE, size = 1) +
     scale_color_manual(values = indicator_colors) +
     scale_linetype_manual(values = indicator_linetypes) +
-    # scale_y_continuous(limits = c(0, NA)) +                # Start y-axis at 0
+    scale_y_continuous(
+      breaks = seq(0, max(df_long$mean_value, na.rm = TRUE), by = 10),
+      expand = expansion(mult = c(0, 0.05))) +
     scale_x_continuous(breaks = seq(0, max(df_long$agemons_complete, na.rm = TRUE), by = 6)) +  # Set x-axis to 0, 6, 12, ...
     labs(
       title = "Prevalence of severe acute malnutrition by age in months",
@@ -921,43 +925,5 @@ for (file in file_names) {
   
 }
 
-
-
-end of file
-
-
-
-
-fre(df$agemons)
-
-
-
-fre(df$agemons_complete)
-
-str(df$sample_wgt)
-
-df_summary <- df %>%
-  filter(!is.na(sample_wgt)) %>%
-  group_by(agemons_complete) %>%
-  summarise(
-    mean_uwt = weighted.mean(uwt, sample_wgt, na.rm = TRUE),    
-    N_uwt = sum(!is.na(uwt))               
-  )
-
-
-df_summary <- df %>%
-  ungroup() %>%
-  mutate(agemons_complete = floor(agemons)) %>%
-  group_by(agemons_complete) %>%
-  summarise(
-    across(
-      .cols = c(wast, sev_wast, uwt, muac_110, muac_115, oedema, at_risk, sam),
-      .fns = list(
-        N = ~ sum(!is.na(.x)),
-        mean = ~ ifelse(sum(!is.na(.x)) < 30, NA_real_,
-                        100 * weighted.mean(.x, sample_wgt, na.rm = TRUE))
-      ),
-      .names = "{.col}_{.fn}"
-    ),
 
 
