@@ -209,9 +209,10 @@ for (file in file_names) {
   df <- df %>%
     mutate(muac_125 =
              case_when(
+               is.na(muac) ~ NA_real_,  # handle missing values
+               agemons < 6 ~ NA_real_,  # If <6M, set to missing
                muac < 125  ~ 1,
-               muac >= 125 ~ 0,
-               is.na(muac) ~ NA_real_  # handle missing values
+               muac >= 125 ~ 0
              )) %>%
     set_variable_labels(muac_125 = "MUAC<125mm")
   
@@ -219,9 +220,10 @@ for (file in file_names) {
   df <- df %>%
     mutate(muac_115 =
              case_when(
+               is.na(muac) ~ NA_real_,  # handle missing values
+               agemons < 6 ~ NA_real_,  # If <6M, set to missing
                muac < 115  ~ 1,
-               muac >= 115 ~ 0,
-               is.na(muac) ~ NA_real_  # handle missing values
+               muac >= 115 ~ 0
              )) %>%
     set_variable_labels(muac_115 = "MUAC<115mm")
   
@@ -229,10 +231,10 @@ for (file in file_names) {
   df <- df %>%
     mutate(muac_110 =
              case_when(
-               muac < 110 ~ 1,
-               muac >= 110 ~ 0,
                is.na(muac) ~ NA_real_,  # handle missing values
-               agemons < 1.5 ~ NA_real_  # If <6 weeks, set to missing
+               agemons < 2 ~ NA_real_,  # If <6 weeks, set to missing
+               muac < 110 ~ 1,
+               muac >= 110 ~ 0
              )) %>%
     set_variable_labels(muac_110 = "MUAC<110mm")
   
@@ -701,7 +703,8 @@ for (file in file_names) {
       y = "Prevalence (%)",
       color = "Indicator",
       linetype = "Indicator",
-      caption = "Note: If the planned data collection did not include MUAC measures for infants <6 months, the MUAC 110mm trend is not representative. Estimates based on < 30 unweighted cases are supressed."
+      caption = "Note: If the planned data collection did not include MUAC measures for infants <6 months, the MUAC 110mm trend is not representative.
+        \nEstimates based on < 30 unweighted cases are suppressed."
     ) +
     theme_minimal() +
     theme(plot.caption = element_text(hjust = 0))  # left-align caption
