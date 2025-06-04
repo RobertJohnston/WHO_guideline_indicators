@@ -38,7 +38,7 @@ if (hostname == "992224APL0X0061") {
 datadir <- file.path(workdir, "Data and Analytics Nutrition - Analysis Space/Child Anthropometry/1- Anthropometry Analysis Script/Prepped Country Data Files/CSV")
 outputdir <- file.path(workdir, "Data and Analytics Nutrition - Working Space/Wasting Cascade/WHO 2024 Country Profiles")
 
-search_name = "Burkina"
+search_name = "South_Sudan"
 
 
 # install.packages("matrixStats")
@@ -156,7 +156,6 @@ for (file in file_names) {
     #            waz >= -2 ~ 0,
     #            is.na(waz) ~ NA_real_  # handle missing values
     #          )) %>%
-    set_value_labels(uwt = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(uwt = "WAZ<-2SD")
   
   # Severe Underweight 
@@ -168,7 +167,6 @@ for (file in file_names) {
     #            waz >= -3 ~ 0,
     #            is.na(waz) ~ NA_real_  # handle missing values
     #          )) %>%
-    set_value_labels(sev_uwt = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(sev_uwt = "WAZ<-3SD")
     if (!"sev_uwt" %in% names(df)) stop("Variable 'sev_uwt' does not exist in the dataset.")
   
@@ -182,7 +180,6 @@ for (file in file_names) {
     #            waz >= -3 ~ 0,
     #            is.na(waz) ~ NA_real_  # handle missing values
     #          )) %>%
-    set_value_labels(sev_uwt_24m = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(sev_uwt_24m = "WAZ<-3SD in children <24M")
   
   # Wasted 
@@ -194,7 +191,6 @@ for (file in file_names) {
     #            whz >= -2 ~ 0,
     #            is.na(whz) ~ NA_real_  # handle missing values
     #          )) %>%
-    set_value_labels(wast = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(wast = "WHZ<-2SD")
   
   # Severely wasted 
@@ -206,7 +202,6 @@ for (file in file_names) {
     #            whz >= -3 ~ 0,
     #            is.na(whz) ~ NA_real_  # handle missing values
     #          )) %>%
-    set_value_labels(sev_wast = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(sev_wast = "WHZ<-3SD")
     if (!"sev_wast" %in% names(df)) stop("Variable 'sev_wast' does not exist in the dataset.")
   
@@ -218,7 +213,6 @@ for (file in file_names) {
                muac >= 125 ~ 0,
                is.na(muac) ~ NA_real_  # handle missing values
              )) %>%
-    set_value_labels(muac_125 = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(muac_125 = "MUAC<125mm")
   
   # MUAC 115 
@@ -229,7 +223,6 @@ for (file in file_names) {
                muac >= 115 ~ 0,
                is.na(muac) ~ NA_real_  # handle missing values
              )) %>%
-    set_value_labels(muac_115 = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(muac_115 = "MUAC<115mm")
   
   # MUAC 110 for infants from 6 weeks to <6 months of age 
@@ -241,7 +234,6 @@ for (file in file_names) {
                is.na(muac) ~ NA_real_,  # handle missing values
                agemons < 1.5 ~ NA_real_  # If <6 weeks, set to missing
              )) %>%
-    set_value_labels(muac_110 = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(muac_110 = "MUAC<110mm")
   
   #muac_115_119
@@ -252,7 +244,6 @@ for (file in file_names) {
                muac < 115 | muac >= 120 ~ 0,
                is.na(muac) ~ NA_real_  # handle missing values
              )) %>%
-    set_value_labels(muac_115_119 = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(muac_115_119 = "MUAC 115-119mm")
   
   # muac_115_119_24m - muac_115_119 in children under 24M
@@ -264,7 +255,6 @@ for (file in file_names) {
                muac < 115 | muac >= 120 ~ 0,
                is.na(muac) ~ NA_real_  # handle missing values
              )) %>%
-    set_value_labels(muac_115_119_24m  = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(muac_115_119_24m  = "MUAC 115-119mm <24M")
   
 # mod_muac_suwt - Variable representing combined condition of 
@@ -278,7 +268,6 @@ for (file in file_names) {
         TRUE ~ 0                                          # Otherwise 0
       )
     ) %>%
-    set_value_labels(mod_muac_suwt = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(mod_muac_suwt = "MUAC 115-119 & Severe UWT in children under 59M")
   
 # mod_muac_suwt_24m - Variable representing combined condition of 
@@ -292,7 +281,6 @@ for (file in file_names) {
         TRUE ~ 0                                                  # Otherwise 0
       )
    ) %>%
-   set_value_labels(mod_muac_suwt_24m = c("Yes" = 1, "No" = 0)) %>%
    set_variable_labels(mod_muac_suwt_24m = "MUAC 115-119 & Severe UWT in children under 24M")
  
   #  Oedema
@@ -313,7 +301,6 @@ for (file in file_names) {
                oedema == "0" ~ 0,
                is.na(oedema) ~ NA_real_  # handle missing values
              )) %>%
-    set_value_labels(oedema = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(oedema = "bilateral oedema")
   
   # At Risk Combined (0-5 months)
@@ -326,7 +313,6 @@ for (file in file_names) {
         TRUE ~ 0
       )
     ) %>%
-    set_value_labels(at_risk = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(at_risk = "At Risk Combined")
   
   # Severe Acute Malnutrition (6-59 months)
@@ -339,7 +325,6 @@ for (file in file_names) {
         TRUE ~ 0
       )
     ) %>%
-    set_value_labels(sam = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(sam = "SAM Combined")
   
   # Global Acute Malnutrition 
@@ -352,41 +337,11 @@ for (file in file_names) {
         TRUE ~ 0
       )
     ) %>%
-    set_value_labels(gam = c("Yes" = 1, "No" = 0)) %>%
     set_variable_labels(gam = "GAM Combined")
   
   df <- df %>%
     mutate(blank = NA) %>%
     set_variable_labels(blank = "-")
-  
-  # View valid N of all indicators
-  indicators <- c("sev_wast", "muac_115", "oedema", "sam", "wast", "muac_125", "gam")
-  
-  df %>%
-    group_by(Region) %>%
-    summarise(
-      across(all_of(indicators), ~ sum(!is.na(.)), .names = "{.col}_N"),
-      .groups = "drop"
-    )
-  total_row <- df %>%
-    summarise(
-      across(all_of(indicators), ~ sum(!is.na(.)), .names = "{.col}_N")
-    ) %>%
-    mutate(Region = "Total") %>%
-    select(Region, everything())
-  
-  # Combine
-  valid_n_table <- bind_rows(
-    df %>%
-      group_by(Region) %>%
-      summarise(
-        across(all_of(indicators), ~ sum(!is.na(.)), .names = "{.col}_N"),
-        .groups = "drop"
-      ),
-    total_row
-  )
-  # View(valid_n_table)
-  
   
   # summarise function (used in tables)
   summarise_prev_table <- function(data) {
@@ -447,7 +402,6 @@ for (file in file_names) {
   for (var in indicators) {
     pct_col <- paste0(var, " (%)")
     n_col   <- paste0(var, " (N)")
-    
     if (pct_col %in% names(full_table) && n_col %in% names(full_table)) {
       mask <- is.na(full_table[[n_col]]) | full_table[[n_col]] < 30
       if (any(mask)) {
@@ -485,7 +439,6 @@ for (file in file_names) {
   for (var in indicators) {
     pct_col <- paste0(var, " (%)")
     n_col   <- paste0(var, " (N)")
-    
     if (pct_col %in% names(full_table) && n_col %in% names(full_table)) {
       mask <- is.na(full_table[[n_col]]) | full_table[[n_col]] < 30
       if (any(mask)) {
@@ -517,7 +470,6 @@ for (file in file_names) {
   for (var in indicators) {
     pct_col <- paste0(var, " (%)")
     n_col   <- paste0(var, " (N)")
-    
     if (pct_col %in% names(full_table) && n_col %in% names(full_table)) {
       mask <- is.na(full_table[[n_col]]) | full_table[[n_col]] < 30
       if (any(mask)) {
@@ -553,7 +505,6 @@ for (file in file_names) {
   for (var in indicators) {
     pct_col <- paste0(var, " (%)")
     n_col   <- paste0(var, " (N)")
-    
     if (pct_col %in% names(full_table) && n_col %in% names(full_table)) {
       
       # Create mask for low sample size OR variable is all NA
@@ -590,7 +541,6 @@ for (file in file_names) {
   for (var in indicators) {
     pct_col <- paste0(var, " (%)")
     n_col   <- paste0(var, " (N)")
-    
     if (pct_col %in% names(full_table) && n_col %in% names(full_table)) {
       mask <- is.na(full_table[[n_col]]) | full_table[[n_col]] < 30
       if (any(mask)) {
@@ -686,7 +636,7 @@ for (file in file_names) {
   
   df <- df %>% mutate(agemons_complete = floor(agemons))
 
-  # Create 'agemons_complete' and calculate weighted means by month
+  # Create calculated weighted means by month
   df_summary <- df %>%
     ungroup() %>%
     filter(!is.na(sample_wgt)) %>%
@@ -733,14 +683,14 @@ for (file in file_names) {
                  values_to = "mean_value")
   
   # Set colors and line types
-  indicator_colors <- c("underweight" = "#1e90ff", "wasting" = "#ff69b4", "muac_110mm" = "red", "at_risk_combined" = "purple" )
+  indicator_colors <- c("underweight" = "#1e90ff", "wasting" = "#ff6262", "muac_110mm" = "#ff1414", "at_risk_combined" = "purple" )
   indicator_linetypes <- c("underweight" = "solid", "wasting" = "solid" , "muac_110mm" = "dotted", "at_risk_combined" = "solid")
   
   # Create and save At Risk plot
   png(plot_path, width = 1200, height = 800, res = 150)
   at_risk_plot <-  ggplot(df_long, aes(x = agemons_complete, y = mean_value, color = indicator, linetype = indicator)) +
     # geom_point(alpha = 0.5) +
-    geom_smooth(method = "loess", span = 0.9, se = FALSE, size = 1) +
+    geom_smooth(method = "loess", span = 1, se = FALSE, size = 1) +
     scale_color_manual(values = indicator_colors) +
     scale_linetype_manual(values = indicator_linetypes) +
     scale_y_continuous(limits = c(0, NA)) +                # Start y-axis at 0
@@ -785,33 +735,10 @@ for (file in file_names) {
                  values_to = "mean_value")
   
   # Set colors and line types
-  indicator_colors <- c("severe_wasting" = "red", "muac_115mm" = "red", oedema = "black", "sam_combined" = "#8b0000" )
+  indicator_colors <- c("severe_wasting" = "#ff1414", "muac_115mm" = "#ff1414", oedema = "black", "sam_combined" = "#8b0000" )
   indicator_linetypes <- c("severe_wasting" = "solid" , "muac_115mm" = "dotted", "oedema" = "solid", "sam_combined" = "solid")
   
-  # png(plot_path, width = 1200, height = 800, res = 150)
-  # sam_plot <-ggplot(df_long, aes(x = agemons_complete, y = mean_value, color = indicator, linetype = indicator)) +
-  #   # geom_point(alpha = 0.5) +
-  #   geom_smooth(method = "loess", span = 0.75, se = TRUE, size = 1) +
-  #   scale_color_manual(values = indicator_colors) +
-  #   scale_linetype_manual(values = indicator_linetypes) +
-  #   scale_y_continuous(
-  #     breaks = seq(0, max(df_long$mean_value, na.rm = TRUE), by = 10),
-  #     expand = expansion(mult = c(0, 0.05))) +
-  #   scale_x_continuous(breaks = seq(0, max(df_long$agemons_complete, na.rm = TRUE), by = 6)) +  # Set x-axis to 0, 6, 12, ...
-  #   labs(
-  #     title = "Prevalence of severe acute malnutrition by age in months",
-  #     x = "Age in Months",
-  #     y = "Prevalence (%)",
-  #     color = "Indicator",
-  #     linetype = "Indicator"
-  #   ) +
-  #   theme_minimal()
-  # 
-  # print(sam_plot)
-  # dev.off()
-  
-  
-  # SAM PLOT 2 - force yaxis to zero
+  # SAM PLOT - force yaxis to zero
   png(plot_path, width = 1200, height = 800, res = 150)
   sam_plot <- ggplot(df_long, aes(x = agemons_complete, y = mean_value, color = indicator, linetype = indicator)) +
     geom_smooth(method = "loess", span = 0.75, se = TRUE, size = 1) +
