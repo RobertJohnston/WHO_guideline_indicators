@@ -38,7 +38,7 @@ if (hostname == "992224APL0X0061") {
 datadir <- file.path(workdir, "Data and Analytics Nutrition - Analysis Space/Child Anthropometry/1- Anthropometry Analysis Script/Prepped Country Data Files/CSV")
 outputdir <- file.path(workdir, "Data and Analytics Nutrition - Working Space/Wasting Cascade/WHO 2024 Country Profiles")
 
-search_name = "South_Sudan"
+search_name = "Mauritania"
 
 
 # install.packages("matrixStats")
@@ -55,6 +55,7 @@ library(matrixStats)
 library(expss)
 library(dplyr)
 library(openxlsx)
+library(tidyr)
 
 # Collect list of files with name of country included
 files <- list.files(path = datadir, pattern = search_name, full.names = TRUE)
@@ -64,7 +65,7 @@ print(file_names)
 # NOTE read_csv - includes the indicator label names.  read_dta does not. 
 
 # To open one specific dataframe
-# file_names <- "South_Sudan-2018-FSNMS_23-ANT.csv"
+# file_names <- "Mauritania-1991-PAPFAM-ANT.csv"
 
 # Loop over filenames 
 for (file in file_names) {
@@ -83,19 +84,40 @@ for (file in file_names) {
   # fre(df$gregion)
   
   # Test if variables are completely missing  ?
-  indicators <- c("sex", "agemons", "waz", "whz","measure", "muac","oedema")
+  indicators <- c("sex", "agemons", "waz", "whz","measure", "muac","oedema", "sw")
   sapply(df[indicators], function(x) all(is.na(x)))
   
-  indicators_original <- paste0(indicators, "_original")
-  indicators_original <- indicators_original[indicators_original %in% names(df)]
-  sapply(df[indicators_original], function(x) all(is.na(x)))
-  
+  # Oedema
   # If oedema is missing, replace oedema with oedema_original
   if ("oedema_original" %in% names(df) && all(is.na(df$oedema))) {
     df$oedema <- df$oedema_original
   }
   # fre(df$oedema)
 
+  # Create original versions of each indicator and modify current versions
+  indicators_original <- paste0(indicators, "_original")
+  indicators_original <- indicators_original[indicators_original %in% names(df)]
+  sapply(df[indicators_original], function(x) all(is.na(x)))
+  
+  # if oedema is not recoded, check oedema_original
+  df <- df %>%
+    mutate(oedema = 
+             case_when(
+               is.na(oedema) ~ NA_real_,  # handle missing values
+               oedema == "Oui" ~ 1,
+               oedema == "Yes" ~ 1,
+               oedema == "yes" ~ 1,
+               oedema == "Y" ~ 1,
+               oedema == "y" ~ 1,
+               oedema == "1" ~ 1,
+               oedema == "n" ~ 0,
+               oedema == "N" ~ 0,
+               oedema == "non" ~ 0,
+               oedema == "Non" ~ 0,
+               oedema == "0" ~ 0,
+             )) %>%
+    set_variable_labels(oedema = "bilateral oedema")
+  
   # If MUAC is saved in CM, convert to MM
   if ("muac" %in% names(df) && any(!is.na(df$muac))) {  # if muac is present or not all missing - continue
     if (mean(df$muac, na.rm = TRUE) < 26) {  # 26 is max in CM that can be measured with child MUAC tape. 
@@ -285,26 +307,6 @@ for (file in file_names) {
    ) %>%
    set_variable_labels(mod_muac_suwt_24m = "MUAC 115-119 & Severe UWT in children under 24M")
  
-  #  Oedema
-  # if oedema is not recoded, check oedema_original
-  df <- df %>%
-    mutate(oedema = 
-             case_when(
-               is.na(oedema) ~ NA_real_,  # handle missing values
-               oedema == "Oui" ~ 1,
-               oedema == "Yes" ~ 1,
-               oedema == "yes" ~ 1,
-               oedema == "Y" ~ 1,
-               oedema == "y" ~ 1,
-               oedema == "1" ~ 1,
-               oedema == "n" ~ 0,
-               oedema == "N" ~ 0,
-               oedema == "non" ~ 0,
-               oedema == "Non" ~ 0,
-               oedema == "0" ~ 0,
-             )) %>%
-    set_variable_labels(oedema = "bilateral oedema")
-  
   # At Risk Combined (0-5 months)
   df <- df %>%
     mutate(
@@ -784,7 +786,7 @@ for (file in file_names) {
         wb,
         sheet = tab_name,
         file = plot_path,
-        startRow = 26,
+        startRow = 28,
         startCol = 16,
         width = 8,
         height = 5.33,
@@ -826,7 +828,7 @@ for (file in file_names) {
       wb,
       sheet = tab_name,
       file = plot_path,
-      startRow = 52,
+      startRow = 55,
       startCol = 16,
       width = 8,
       height = 5.33,
@@ -875,7 +877,7 @@ for (file in file_names) {
       wb,
       sheet = tab_name,
       file = plot_path,
-      startRow = 75,
+      startRow = 80,
       startCol = 16,   # Plot below WHZ graph
       width = 8,
       height = 5.33,
