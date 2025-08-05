@@ -4,6 +4,7 @@
 # CHECKS
 
 # double check oedema
+# Review how oedema is used in prevalence estimates - ignored by JME
 
 # If SD of WAZ or WHZ is >1.2 then calculate prev from mean. 
 
@@ -28,17 +29,17 @@ if (hostname == "992224APL0X0061") {
   # Robert UNICEF PC
   workdir <- "C:/Users/rojohnston/UNICEF"
 } else if (hostname == "DESKTOP-IMTUODA") {
-  # Your laptop
-  workdir <- "C:/Users/stupi/UNICEF"
+  # Robert laptop
+  workdir <- "E:"
 } else {
   stop("Unrecognized hostname, Set 'workdir' manually.")
 }
 
 # Set other directories
-datadir <- file.path(workdir, "Data and Analytics Nutrition - Analysis Space/Child Anthropometry/1- Anthropometry Analysis Script/Prepped Country Data Files/CSV")
-outputdir <- file.path(workdir, "Data and Analytics Nutrition - Working Space/Wasting Cascade/WHO 2024 Country Profiles")
+datadir <- file.path(workdir, "Child Anthropometry/1- Anthropometry Analysis Script/Prepped Country Data Files/CSV")
+outputdir <- file.path("C:/Users/rober/OneDrive/Wasting Cascade/WHO 2024 Country Profiles")
 
-search_name = "Mauritania"
+search_name = "Afghanistan"
 
 
 # install.packages("matrixStats")
